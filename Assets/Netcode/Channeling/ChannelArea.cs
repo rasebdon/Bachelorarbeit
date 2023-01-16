@@ -6,12 +6,12 @@ using UnityEngine;
 namespace Netcode.Channeling
 {
     [Serializable]
-    public class ChannelSettings
+    public class ChannelAreaSettings
     {
         public ChannelType channelType;
         public Vector3 size;
 
-        public ChannelSettings(ChannelType channelType)
+        public ChannelAreaSettings(ChannelType channelType)
         {
             this.channelType = channelType;
             size = Vector3.one * 10;
@@ -22,7 +22,7 @@ namespace Netcode.Channeling
     {
         private Dictionary<ChannelType, Channel> _channels = new();
 
-        [SerializeField] private List<ChannelSettings> _channelSettings;
+        [SerializeField] private List<ChannelAreaSettings> _channelSettings;
         [SerializeField] private bool _drawGizmos;
         [SerializeField] private Color _gizmoColor = Color.white;
 
@@ -32,7 +32,7 @@ namespace Netcode.Channeling
         {
             if(_drawGizmos)
             {
-                foreach (ChannelSettings settings in _channelSettings)
+                foreach (ChannelAreaSettings settings in _channelSettings)
                 {
                     Gizmos.color = _gizmoColor;
                     Gizmos.DrawWireCube(transform.position, settings.size);
@@ -48,7 +48,7 @@ namespace Netcode.Channeling
             ReloadChannels(Enum.GetValues(typeof(ChannelType)).Cast<ChannelType>());
         }
 
-        private void Awake()
+        private void Start()
         {
             var actualChannels = GetComponentsInChildren<Channel>();
             foreach (var channel in actualChannels)
@@ -78,13 +78,13 @@ namespace Netcode.Channeling
             foreach (ChannelType channelType in channelTypes)
             {
                 // Get channel settings
-                IEnumerable<ChannelSettings> settings = _channelSettings.Where(
+                IEnumerable<ChannelAreaSettings> settings = _channelSettings.Where(
                     s => s.channelType == channelType);
 
-                ChannelSettings setting = settings.FirstOrDefault();
+                ChannelAreaSettings setting = settings.FirstOrDefault();
                 if (setting == null)
                 {
-                    setting = new ChannelSettings(channelType);
+                    setting = new ChannelAreaSettings(channelType);
                     _channelSettings.Add(setting);
                 }
                 // Get rid of too many settings
@@ -111,7 +111,7 @@ namespace Netcode.Channeling
         /// <param name="type"></param>
         /// <param name="channelDiameter"></param>
         /// <returns></returns>
-        private KeyValuePair<ChannelType, Channel> CreateChannel(ChannelType type, ChannelSettings settings)
+        private KeyValuePair<ChannelType, Channel> CreateChannel(ChannelType type, ChannelAreaSettings settings)
         {
             // Create GameObject
             GameObject channelObject = new($"{type}Channel");

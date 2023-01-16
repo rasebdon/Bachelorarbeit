@@ -10,7 +10,6 @@ namespace Netcode.Channeling.Editor
     internal class ChannelAreaEditor : UnityEditor.Editor
     {
         private SerializedProperty _drawGizmos;
-        private SerializedProperty _channelSettings;
 
         public override void OnInspectorGUI()
         {
@@ -31,6 +30,7 @@ namespace Netcode.Channeling.Editor
             _drawGizmos.colorValue = EditorGUILayout.ColorField("Gizmo Colors", _drawGizmos.colorValue);
 
             // Render list of ChannelSettings
+            EditorGUILayout.Separator();
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_channelSettings"), true);
 
             if (serializedObject.ApplyModifiedProperties())

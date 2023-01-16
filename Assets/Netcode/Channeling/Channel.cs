@@ -1,37 +1,59 @@
 ﻿using Netcode.Behaviour;
 using System;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace Netcode.Channeling
 {
+    /// <summary>
+    /// Channel component that forwards messages between their subscribed
+    /// objects and the channel handler. Is disabled on clients
+    /// </summary>
     [RequireComponent(typeof(Collider))]
+    [DisallowMultipleComponent]
     public class Channel : MonoBehaviour
     {
-        public ushort ChannelId { get => _channelId; set => _channelId = value; }
-        [SerializeField] private ushort _channelId;
-
-        private ChannelHandler _channelHandler;
+        public uint ChannelId { get => _channelId; set => _channelId = value; }
+        [SerializeField] private uint _channelId;
 
         [SerializeField] private List<NetworkIdentity> _subscribed;
 
-        private void Awake()
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            GenerateGlobalObjectIdHash();
+        }
+
+        internal void GenerateGlobalObjectIdHash()
+        {
+            // do NOT regenerate GlobalObjectIdHash for NetworkPrefabs while Editor is in PlayMode
+            if (EditorApplication.isPlaying && !string.IsNullOrEmpty(gameObject.scene.name))
+            {
+                return;
+            }
+
+            // do NOT regenerate GlobalObjectIdHash if Editor is transitioning into or out of PlayMode
+            if (!EditorApplication.isPlaying && EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                return;
+            }
+
+            var globalObjectIdString = GlobalObjectId.GetGlobalObjectIdSlow(this).ToString();
+            _channelId = (uint)globalObjectIdString.GetHashCode();
+        }
+#endif // UNITY_EDITOR
+
+        private void Start()
         {
             _subscribed = new();
-            _channelHandler = FindObjectOfType<ChannelHandler>();
-            _channelHandler.RegisterChannel(this);
         }
 
-        public void SendPublish(string message)
-        {
-            _channelHandler.SendPublish(message, this);
-        }
-
-        public void ReceivePublish(string message)
+        public void Publish(string message)
         {
             foreach (NetworkIdentity netId in _subscribed)
             {
-                netId.OnMessageReceive.Invoke(message);
+                netId.OnServerMessageProcess.Invoke(message);
             }
         }
 
@@ -41,7 +63,7 @@ namespace Netcode.Channeling
         /// <param name="netId"></param>
         public void Subscribe(NetworkIdentity netId)
         {
-            netId.OnMessageSend += SendPublish;
+            netId.OnServerMessageDistribute += Publish;
             _subscribed.Add(netId);
         }
 
@@ -53,7 +75,7 @@ namespace Netcode.Channeling
         {
             if (_subscribed.Contains(netId))
             {
-                netId.OnMessageSend -= SendPublish;
+                netId.OnServerMessageDistribute -= Publish;
                 _subscribed.Remove(netId);
             }
         }
