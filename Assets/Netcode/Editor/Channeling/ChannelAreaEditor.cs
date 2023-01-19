@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Netcode.Channeling;
 using UnityEditor;
 using UnityEngine;
 
-namespace Netcode.Channeling.Editor
+namespace Netcode.Editor.Channeling
 {
     [CustomEditor(typeof(ChannelArea))]
     internal class ChannelAreaEditor : UnityEditor.Editor

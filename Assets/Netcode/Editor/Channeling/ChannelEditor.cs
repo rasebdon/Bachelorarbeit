@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Policy;
+﻿using Netcode.Channeling;
 using UnityEditor;
 using UnityEngine;
 
-namespace Netcode.Channeling.Editor
+namespace Netcode.Editor.Channeling
 {
     [CustomEditor(typeof(Channel))]
     [CanEditMultipleObjects]

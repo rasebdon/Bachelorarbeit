@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Netcode.Behaviour;
+using System;
 using UnityEditor;
 using UnityEngine;
 
-namespace Netcode.Behaviour.Editor
+namespace Netcode.Editor.Behaviour
 {
     [CustomEditor(typeof(NetworkIdentity))]
     internal class NetworkIdentityEditor : UnityEditor.Editor
