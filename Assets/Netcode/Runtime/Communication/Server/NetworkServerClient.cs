@@ -12,14 +12,13 @@ namespace Netcode.Runtime.Communication.Server
 {
     public class NetworkServerClient : IDisposable
     {
-        public uint ClientId { get; }
+        public uint ClientId { get; private set; }
 
         // Events
         public EventHandler<NetworkMessageRecieveArgs> OnReceive;
 
         // TCP related member variables
-        private readonly TcpClient _tcpClient;
-        private readonly NetworkStream _stream;
+        protected readonly TcpClient _tcpClient;
 
         // UDP related member variables
         /// <summary>
@@ -27,13 +26,13 @@ namespace Netcode.Runtime.Communication.Server
         /// </summary>
         public bool UdpIsConfigured { get => UdpEndPoint == null; }
         public IPEndPoint UdpEndPoint { get; set; }
-        private readonly UdpClient _udpClient;
+        protected readonly UdpClient _udpClient;
 
         // Message Protocol Variables
-        private readonly IMessageProtocolHandler _protocolHandler;
+        protected readonly IMessageProtocolHandler _protocolHandler;
 
-        private readonly IEncryption _encryption;
-        private readonly IMACHandler _macHandler;
+        protected readonly IEncryption _encryption;
+        protected readonly IMACHandler _macHandler;
 
         public NetworkServerClient(uint clientId, TcpClient client, UdpClient udpClient, IMessageProtocolHandler protocolHandler)
         {
@@ -41,9 +40,6 @@ namespace Netcode.Runtime.Communication.Server
             _protocolHandler = protocolHandler;
             _tcpClient = client;
             _udpClient = udpClient;
-            _stream = client.GetStream();
-
-            // Setup event handler for AES key and MAC key exchange
         }
 
         /// <summary>
@@ -56,7 +52,7 @@ namespace Netcode.Runtime.Communication.Server
             byte[] data = _protocolHandler.SerializeMessage(message, _macHandler, _encryption);
 
             // Write to the tcp network stream
-            await _stream.WriteAsync(data, 0, data.Length);
+            await _tcpClient.GetStream().WriteAsync(data, 0, data.Length);
         }
 
         /// <summary>
@@ -94,7 +90,7 @@ namespace Netcode.Runtime.Communication.Server
         /// </summary>
         /// <param name="stream"></param>
         /// <returns></returns>
-        private async Task ReceiveMessage(Stream stream)
+        protected async Task ReceiveMessage(Stream stream)
         {
             // Get message from stream
             NetworkMessage message = await _protocolHandler.DeserializeMessageAsync(stream, _macHandler, _encryption);

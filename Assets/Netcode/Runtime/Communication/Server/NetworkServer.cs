@@ -59,7 +59,7 @@ namespace Netcode.Runtime.Communication.Server
         /// </summary>
         private readonly IMessageProtocolHandler _messageProtocolHandler;
 
-        public NetworkServer(ushort tcpPort, ushort udpPort, ushort maxClients)
+        public NetworkServer(ushort tcpPort, ushort udpPort, ushort maxClients, IMessageProtocolHandler protocolHandler)
         {
             // Setup properties
             MaxClients = maxClients;
@@ -69,9 +69,7 @@ namespace Netcode.Runtime.Communication.Server
             _udpEndpoint = new IPEndPoint(IPAddress.Any, udpPort);
             _nextClientId = 0;
 
-            // TODO :
-            // messageSerializer = new MessagePackSerialzer();
-            // _messageProtocolHandler = new MessageProtocolHandler(messageSerializer);
+            _messageProtocolHandler = protocolHandler;
 
             // Setup sockets
             _tcpServer = new TcpListener(IPAddress.Any, tcpPort);
@@ -112,6 +110,10 @@ namespace Netcode.Runtime.Communication.Server
                     ServerMessageReceiveEventArgs newArgs = new((NetworkServerClient)sender, args.Message);
                     OnServerMessageReceive?.Invoke(this, newArgs);
                 };
+
+                // TODO :
+                // Setup event handler for AES key and MAC key exchange
+
                 client.BeginReceiveTcpAsync();
             }
 

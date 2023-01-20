@@ -6,14 +6,20 @@ using UnityEngine;
 namespace Netcode.Editor.Behaviour
 {
     [CustomEditor(typeof(NetworkIdentity))]
-    internal class NetworkIdentityEditor : UnityEditor.Editor
+    internal class NetworkHandlerEditor : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
             NetworkIdentity netId = (NetworkIdentity)target;
 
-            if (netId.Guid == Guid.Empty)
+            // It is a prefab
+            if(netId.gameObject.scene.rootCount == 0)
+            {
+                netId.Guid = Guid.Empty;
+            }
+            // It is a scene instance object
+            else if (netId.Guid == Guid.Empty)
             {
                 netId.Guid = Guid.NewGuid();
             }
