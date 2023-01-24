@@ -6,7 +6,7 @@ namespace Netcode.Runtime.Communication.Common.Serialization
     public interface IMessageSerializer
     {
         public NetworkMessage Deserialize(byte[] data, Type messageType);
-        public byte[] Serialize(NetworkMessage message);
+        public byte[] Serialize<T>(T message) where T : NetworkMessage;
         
         Type GetMessageType(short messageTypeId);
         short GetMessageTypeId(Type messageType);

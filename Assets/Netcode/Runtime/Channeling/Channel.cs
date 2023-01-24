@@ -1,4 +1,5 @@
 ﻿using Netcode.Behaviour;
+using Netcode.Runtime.Communication.Common.Messaging;
 using System;
 using System.Collections.Generic;
 using UnityEditor;
@@ -49,11 +50,11 @@ namespace Netcode.Channeling
             _subscribed = new();
         }
 
-        public void Publish(string message)
+        public void Publish(NetworkMessage message)
         {
             foreach (NetworkIdentity netId in _subscribed)
             {
-                netId.OnServerMessageProcess.Invoke(message);
+                netId.OnReceiveMessage.Invoke(message);
             }
         }
 
@@ -63,7 +64,7 @@ namespace Netcode.Channeling
         /// <param name="netId"></param>
         public void Subscribe(NetworkIdentity netId)
         {
-            netId.OnServerMessageDistribute += Publish;
+            netId.OnDistributeToChannels += Publish;
             _subscribed.Add(netId);
         }
 
@@ -75,7 +76,7 @@ namespace Netcode.Channeling
         {
             if (_subscribed.Contains(netId))
             {
-                netId.OnServerMessageDistribute -= Publish;
+                netId.OnDistributeToChannels -= Publish;
                 _subscribed.Remove(netId);
             }
         }

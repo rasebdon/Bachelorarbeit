@@ -12,6 +12,6 @@ namespace Netcode.Runtime.Communication.Common
     public interface IMessageProtocolHandler
     {
         Task<NetworkMessage> DeserializeMessageAsync(Stream stream, IMACHandler macHandler = null, IEncryption encryption = null);
-        byte[] SerializeMessage(NetworkMessage message, IMACHandler macHandler = null, IEncryption encryption = null);
+        byte[] SerializeMessage<MessageType>(MessageType message, IMACHandler macHandler = null, IEncryption encryption = null) where MessageType : NetworkMessage;
     }
 }

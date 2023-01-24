@@ -1,4 +1,5 @@
 ﻿using Netcode.Runtime.Communication.Common;
+using Netcode.Runtime.Communication.Common.Logging;
 using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Communication.Common.Security;
 using Netcode.Runtime.Communication.Common.Serialization;
@@ -59,7 +60,19 @@ namespace Netcode.Runtime.Communication.Server
         /// </summary>
         private readonly IMessageProtocolHandler _messageProtocolHandler;
 
-        public NetworkServer(ushort tcpPort, ushort udpPort, ushort maxClients, IMessageProtocolHandler protocolHandler)
+        private readonly ILoggerFactory _loggerFactory;
+        private readonly ILogger<NetworkServer> _logger;
+
+        private bool _stopped = true;
+
+        private readonly IAsymmetricEncryption _asymmetricEncryption;
+
+        public NetworkServer(
+            ushort tcpPort,
+            ushort udpPort,
+            ushort maxClients,
+            IMessageProtocolHandler protocolHandler,
+            ILoggerFactory loggerFactory)
         {
             // Setup properties
             MaxClients = maxClients;
@@ -68,113 +81,214 @@ namespace Netcode.Runtime.Communication.Server
             // Setup member variables
             _udpEndpoint = new IPEndPoint(IPAddress.Any, udpPort);
             _nextClientId = 0;
+            _stopped = true;
 
             _messageProtocolHandler = protocolHandler;
+            _asymmetricEncryption = new RSAEncryption();
+
+            _loggerFactory = loggerFactory;
+            _logger = _loggerFactory.CreateLogger<NetworkServer>();
 
             // Setup sockets
             _tcpServer = new TcpListener(IPAddress.Any, tcpPort);
         }
 
+        /// <summary>
+        /// Starts the network server and listens for incoming TCP connections and UDP datagrams
+        /// </summary>
         public void Start()
         {
-            _udpClient = new UdpClient(_udpEndpoint);
-            _udpClient.BeginReceive(OnUdpReceive, null);
+            try
+            {
+                // Start listening on the udp port
+                _udpClient = new UdpClient(_udpEndpoint);
+                _udpClient.BeginReceive(OnUdpReceive, null);
 
-            // Start listening on the tcp port
-            _tcpServer.Start();
-            _tcpServer.BeginAcceptTcpClient(OnTcpConnect, null);
+                // Start listening on the tcp port
+                _tcpServer.Start();
+                _tcpServer.BeginAcceptTcpClient(OnTcpConnect, null);
+
+                _stopped = false;
+
+                _logger.LogInfo("Started");
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex);
+            }
         }
 
-        private void OnTcpConnect(IAsyncResult result)
+        private async void OnTcpConnect(IAsyncResult result)
         {
-            // Accept the client
-            TcpClient tcpClient = _tcpServer.EndAcceptTcpClient(result);
-            NetworkServerClient client = new(NextClientId, tcpClient, _udpClient, _messageProtocolHandler);
-
-            // Check if the server has space for additional clients
-            if (Clients.Count == MaxClients)
+            try
             {
-                // Send the client that the server is currently full
-                client.SendTcp(new ServerFullMessage());
-                client.Dispose();
-            }
-            else
-            {
-                // Client connection successful
-                Clients.Add(client);
-                OnServerClientConnect?.Invoke(this, new ServerConnectionEventArgs(client));
+                // Accept the client
+                TcpClient tcpClient = _tcpServer.EndAcceptTcpClient(result);
+                NetworkServerClient client = new(NextClientId, tcpClient, 
+                    _udpClient, _messageProtocolHandler, _asymmetricEncryption,
+                    _loggerFactory.CreateLogger<NetworkServerClient>());
 
-                // Setup receive on client
-                client.OnReceive += (object sender, NetworkMessageRecieveArgs args) =>
+                _logger.LogInfo("Incoming TCP client connection");
+                _logger.LogDetail($"Client Info - ClientId: {client.ClientId}; EndPoint: {((IPEndPoint)tcpClient.Client.RemoteEndPoint)}");
+
+                // Check if the server has space for additional clients
+                if (Clients.Count == MaxClients)
                 {
-                    ServerMessageReceiveEventArgs newArgs = new((NetworkServerClient)sender, args.Message);
-                    OnServerMessageReceive?.Invoke(this, newArgs);
-                };
+                    // Send the client that the server is currently full
+                    await client.SendTcpAsync(new ServerFullMessage());
+                    client.Dispose();
 
-                // TODO :
-                // Setup event handler for AES key and MAC key exchange
+                    _logger.LogInfo("Client rejected because server is full");
+                    _logger.LogDetail($"Current/Max clients: {Clients.Count}/{MaxClients}");
+                }
+                else
+                {
+                    // Client connection successful
+                    Clients.Add(client);
+                    OnServerClientConnect?.Invoke(this, new ServerConnectionEventArgs(client));
 
-                client.BeginReceiveTcpAsync();
+                    // Setup disconnect event
+                    client.OnDisconnect += (uint clientId) =>
+                    {
+                        _logger.LogInfo($"Client {clientId} disconnecting!");
+
+                        OnServerClientDisconnect?.Invoke(this, new ServerConnectionEventArgs(client));
+                        Clients.Remove(client);
+                        
+                        client.Dispose();
+                    };
+
+                    // Setup receive on client
+                    client.OnReceive += (object sender, NetworkMessageRecieveArgs args) =>
+                    {
+                        NetworkServerClient client = (NetworkServerClient)sender;
+                        _logger.LogDetail($"Message received for client {client.ClientId} of type {args.Message.GetType().Name}");
+
+                        ServerMessageReceiveEventArgs newArgs = new(client, args.Message);
+                        OnServerMessageReceive?.Invoke(this, newArgs);
+                    };
+
+                    // Send connection informations to client
+                    await client.SendTcpAsync(new ConnectionInfoMessage(client.ClientId, _asymmetricEncryption.PublicKey));
+
+                    _logger.LogInfo("Client connected successfully");
+
+                    client.BeginReceiveTcpAsync();
+                }
+
+                // Begin to listen again
+                _tcpServer.BeginAcceptTcpClient(OnTcpConnect, null);
             }
-
-            // Begin to listen again
-            _tcpServer.BeginAcceptTcpClient(OnTcpConnect, null);
+            catch (ObjectDisposedException ex)
+            {
+                if (!_stopped)
+                {
+                    _logger.LogError(ex);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex);
+            }
         }
 
         private async void OnUdpReceive(IAsyncResult result)
         {
-            IPEndPoint remoteEp = new(IPAddress.Any, _udpEndpoint.Port);
-
-            byte[] data = _udpClient.EndReceive(result, ref remoteEp);
-            
-            if (data != null && data.Length > 0)
+            try
             {
-                // Find client with IPEndPoint of receiver
-                NetworkServerClient client = Clients.Find(c => c.UdpIsConfigured && c.UdpEndPoint.Address == remoteEp.Address);
+                IPEndPoint remoteEp = new(IPAddress.Any, _udpEndpoint.Port);
 
-                if(client == null)
+                byte[] data = _udpClient.EndReceive(result, ref remoteEp);
+
+                _logger.LogInfo($"Incoming UDP datagram from {remoteEp}");
+
+                if (data != null && data.Length > 0)
                 {
-                    // Check if the message that was received was a RegisterUdpMessage
-                    NetworkMessage message = await _messageProtocolHandler.DeserializeMessageAsync(new MemoryStream(data));
+                    // Find client with IPEndPoint of receiver
+                    NetworkServerClient client = Clients.Find(c => c.UdpIsConfigured && c.UdpEndPoint.Address == remoteEp.Address);
 
-                    if(message is RegisterUdpMessage msg)
+                    if (client == null)
                     {
-                        client = Clients.Find(c => c.ClientId == msg.ClientId);
-                        
-                        if(client == null)
-                        {
-                            // Throw some error
-                        }
+                        _logger.LogInfo($"Could not find client with udp address {remoteEp}, checking for RegisterUdpMessage...");
 
-                        // Set the client endpoint to the received message endpoint
-                        client.UdpEndPoint = remoteEp;
+                        // Check if the message that was received was a RegisterUdpMessage
+                        NetworkMessage message = await _messageProtocolHandler.DeserializeMessageAsync(new MemoryStream(data));
+
+                        if (message is RegisterUdpMessage msg)
+                        {
+                            client = Clients.Find(c => c.ClientId == msg.ClientId);
+
+                            if (client == null)
+                            {
+                                _logger.LogError($"Could not find any client with client id {msg.ClientId} to register udp with!");
+                            }
+
+                            // Set the client endpoint to the received message endpoint
+                            client.UdpEndPoint = remoteEp;
+                            client.UdpIsConfigured = true;
+
+                            _logger.LogInfo($"Client {client.ClientId} registered UDP with endpoint {remoteEp}");
+                        }
+                        // Throw away message (No client + incorrect register udp message)
+                        else
+                        {
+                            _logger.LogError($"Incorrect message received (message should have been RegisterUdpMessage)!");
+
+                            // Begin to receive datagrams again
+                            _udpClient.BeginReceive(OnUdpReceive, null);
+                            return;
+                        }
                     }
+
+                    // Call the on receive method for datagrams on the server client
+                    client.ReceiveDatagramAsync(data);
                 }
 
-                // Call the on receive method for datagrams on the server client
-                client.ReceiveDatagramAsync(data);
+                // Begin to receive datagrams again
+                _udpClient.BeginReceive(OnUdpReceive, null);
             }
-
-            // Begin to receive datagrams again
-            _udpClient.BeginReceive(OnUdpReceive, null);
+            catch(ObjectDisposedException ex)
+            {
+                if (!_stopped)
+                {
+                    _logger.LogError(ex);
+                }
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex);
+            }
         }
 
+        /// <summary>
+        /// Stops the server and disposes its referenced objects (<see cref="Clients"/>, <see cref="TcpListener"/>, <see cref="UdpClient"/>)
+        /// </summary>
         public void Stop()
         {
-            // Dispose clients
-            Clients.ForEach(c => c.Dispose());
+            try
+            {
+                _stopped = true;
 
-            _tcpServer.Stop();
-            _udpClient.Dispose();
+                // Dispose clients
+                Clients.ForEach(c => c?.Dispose());
+
+                _udpClient?.Dispose();
+                _tcpServer?.Stop();
+
+                _logger.LogInfo("Stopped");
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex);
+            }
         }
 
+        /// <summary>
+        /// Equivalent to <see cref="Stop"/>
+        /// </summary>
         public void Dispose()
         {
-            // Dispose clients
-            Clients.ForEach(c => c.Dispose());
-
-            _tcpServer.Stop();
-            _udpClient.Dispose();
+            Stop();
         }
     }
 }

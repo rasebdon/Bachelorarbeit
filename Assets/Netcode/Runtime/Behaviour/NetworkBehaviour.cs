@@ -8,7 +8,7 @@ using UnityEngine;
 namespace Netcode.Behaviour
 {
     [RequireComponent(typeof(NetworkIdentity))]
-    public class NetworkBehaviour : MonoBehaviour
+    public abstract class NetworkBehaviour : MonoBehaviour
     {
     }
 }

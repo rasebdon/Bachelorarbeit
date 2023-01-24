@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Netcode.Editor.Integration
 {
     [CustomEditor(typeof(NetworkHandler))]
-    internal class NetworkHandlerEditor : UnityEditor.Editor
+    internal class NetworkHandlerInspector : UnityEditor.Editor
     {
         NetworkHandler handler;
 
@@ -62,6 +62,7 @@ namespace Netcode.Editor.Integration
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_tcpPort"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_udpPort"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_maxClients"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_logLevel"));
 
             NetcodeGUI.DrawHorizontalGUILine();
             EditorGUILayout.EndVertical();

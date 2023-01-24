@@ -2,7 +2,9 @@
 {
     public interface IEncryption
     {
-        bool IsConfigured { get; }
+        bool IsConfigured { get; set; }
+        byte[] Key { get; }
+        byte[] IV { get; }
 
         byte[] Decrypt(byte[] data);
         byte[] Encrypt(byte[] data);

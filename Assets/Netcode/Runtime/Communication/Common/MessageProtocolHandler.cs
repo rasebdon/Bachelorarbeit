@@ -36,22 +36,22 @@ namespace Netcode.Runtime.Communication.Common
 
             // Get MAC data (if mac is configured)
             byte[] macBuffer = new byte[32];
-            if (macHandler.IsConfigured)
+            if (macHandler != null && macHandler.IsConfigured)
             {
                 await stream.ReadAsync(macBuffer, 0, macBuffer.Length);
             }
 
             // Get data size (in bytes)
-            byte[] dataSizeBuffer = new byte[2];
+            byte[] dataSizeBuffer = new byte[4];
             await stream.ReadAsync(dataSizeBuffer, 0, dataSizeBuffer.Length);
-            short dataSize = BitConverter.ToInt16(dataSizeBuffer, 0);
+            int dataSize = BitConverter.ToInt32(dataSizeBuffer, 0);
 
             // Get data
             byte[] dataBuffer = new byte[dataSize];
             await stream.ReadAsync(dataBuffer, 0, dataBuffer.Length);
 
             // Check MAC with generated mac
-            if (macHandler.IsConfigured)
+            if (macHandler != null && macHandler.IsConfigured)
             {
                 byte[] calculatedMac = macHandler.GenerateMAC(dataBuffer);
                 if (!calculatedMac.SequenceEqual(macBuffer))
@@ -61,7 +61,7 @@ namespace Netcode.Runtime.Communication.Common
             }
 
             // Decrypt if encryption flag is set
-            if (isEncryptedBuffer[0] == 1)
+            if (isEncryptedBuffer[0] == 1 && encryption != null)
             {
                 dataBuffer = encryption.Decrypt(dataBuffer);
             }
@@ -70,7 +70,7 @@ namespace Netcode.Runtime.Communication.Common
             return _serializer.Deserialize(dataBuffer, messageType);
         }
 
-        public byte[] SerializeMessage(NetworkMessage message, IMACHandler macHandler = null, IEncryption encryption = null)
+        public byte[] SerializeMessage<MessageType>(MessageType message, IMACHandler macHandler = null, IEncryption encryption = null) where MessageType : NetworkMessage
         {
             using MemoryStream ms = new();
 
@@ -78,7 +78,7 @@ namespace Netcode.Runtime.Communication.Common
             ms.WriteAsync(BitConverter.GetBytes(_serializer.GetMessageTypeId(message.GetType())));
 
             // Write encryption flag
-            bool isEncrypted = encryption.IsConfigured;
+            bool isEncrypted = encryption != null && encryption.IsConfigured;
             ms.Write(BitConverter.GetBytes(isEncrypted));
 
             // Get data
@@ -91,7 +91,7 @@ namespace Netcode.Runtime.Communication.Common
             }
 
             // Generate and write MAC
-            if (macHandler.IsConfigured)
+            if (macHandler != null && macHandler.IsConfigured)
             {
                 byte[] mac = macHandler.GenerateMAC(data);
                 ms.Write(mac);

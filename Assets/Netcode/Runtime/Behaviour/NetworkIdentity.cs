@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Netcode.Runtime.Communication.Common.Messaging;
+using Netcode.Runtime.Communication.Server;
+using Netcode.Runtime.Integration;
+using System;
 using UnityEditor;
 using UnityEngine;
 
@@ -26,41 +29,19 @@ namespace Netcode.Behaviour
         [SerializeField] private Guid _guid;
         [SerializeField] private string _guidAsString;
 
+        // Helper properties
+        public bool IsClient { get => NetworkHandler.Instance.IsClient; }
+        public bool IsServer { get => NetworkHandler.Instance.IsServer; }
+        public bool IsHost { get => NetworkHandler.Instance.IsHost; }
+
         /// <summary>
         /// Gets invoked on the server from this gameobject to notify the connected channels
         /// </summary>
-        public Action<string> OnServerMessageDistribute;
-        public Action<string> OnServerMessageProcess;
+        public Action<NetworkMessage> OnDistributeToChannels;
 
         /// <summary>
-        /// Gets invoked on the client when this network identity receives a message
+        /// Gets invoked when this network identity receives a message
         /// </summary>
-        public Action<string> OnClientMessageReceive;
-
-        private void Start()
-        {
-            InvokeRepeating(nameof(SendMessageTest), 0, 5);
-            
-            // In reality, this will contain event methods that will call the network manager
-            OnServerMessageProcess += (string s) =>
-            {
-                OnClientMessageReceive.Invoke(s);
-            };
-
-            // This will finally be called on the client to receive messages that were sent in the OnServerMessageProcess event
-            OnClientMessageReceive += (string s) =>
-            {
-                Debug.Log($"NetworkIdentity {Guid} notified!");
-            };
-        }
-
-        private void SendMessageTest()
-        {
-            if(OnServerMessageDistribute != null)
-            {
-                // This simulates the NetworkHandler.FindNetworkObject().OnServerMessageDistribute.Invoke() call
-                OnServerMessageDistribute.Invoke("Test");
-            }
-        }
+        public Action<NetworkMessage> OnReceiveMessage;
     }
 }

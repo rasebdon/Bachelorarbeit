@@ -2,8 +2,9 @@
 {
     public interface IMACHandler
     {
-        bool IsConfigured { get; }
-
+        bool IsConfigured { get; set; }
+        byte[] Key { get; }
+        
         byte[] GenerateMAC(byte[] data);
     }
 }

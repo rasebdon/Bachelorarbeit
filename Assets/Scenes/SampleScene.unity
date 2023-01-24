@@ -865,15 +865,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d46579684b2665a47a6fd800fb75a6c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _hostname: localhost
+  _hostname: 127.0.0.1
   _tcpPort: 27600
   _udpPort: 27600
   _maxClients: 10
+  _logLevel: 0
   _isServer: 0
   _isClient: 0
   _isHost: 0
   _started: 0
-  _objectRegistry: []
+  _objectRegistry:
+  - {fileID: 8922096680446484004, guid: f4f26b3e5ff39ab4f87f3c04be2e0101, type: 3}
   _playerPrefab: {fileID: 0}
 --- !u!114 &2117910824
 MonoBehaviour:
@@ -887,3 +889,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20691dfb535fd374399f538ec9b0e9cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _prefabToInstantiate: {fileID: 8922096680446484004, guid: f4f26b3e5ff39ab4f87f3c04be2e0101, type: 3}

@@ -1,107 +1,41 @@
 ﻿using Netcode.Runtime.Communication.Common;
+using Netcode.Runtime.Communication.Common.Logging;
 using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Communication.Common.Security;
 using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading.Tasks;
-using UnityEditor.PackageManager;
 
 namespace Netcode.Runtime.Communication.Server
 {
-    public class NetworkServerClient : IDisposable
+    public class NetworkServerClient : NetworkClientBase<NetworkServerClient>
     {
-        public uint ClientId { get; private set; }
-
-        // Events
-        public EventHandler<NetworkMessageRecieveArgs> OnReceive;
-
-        // TCP related member variables
-        protected readonly TcpClient _tcpClient;
-
-        // UDP related member variables
-        /// <summary>
-        /// Returns wheter the udp client is already set up or not
-        /// </summary>
-        public bool UdpIsConfigured { get => UdpEndPoint == null; }
-        public IPEndPoint UdpEndPoint { get; set; }
-        protected readonly UdpClient _udpClient;
-
-        // Message Protocol Variables
-        protected readonly IMessageProtocolHandler _protocolHandler;
-
-        protected readonly IEncryption _encryption;
-        protected readonly IMACHandler _macHandler;
-
-        public NetworkServerClient(uint clientId, TcpClient client, UdpClient udpClient, IMessageProtocolHandler protocolHandler)
+        public NetworkServerClient(uint clientId, TcpClient client, UdpClient udpClient, IMessageProtocolHandler protocolHandler, IAsymmetricEncryption asymmetricEncryption, ILogger<NetworkServerClient> logger) 
+            : base(clientId, client, udpClient, protocolHandler, asymmetricEncryption, logger)
         {
-            ClientId = clientId;
-            _protocolHandler = protocolHandler;
-            _tcpClient = client;
-            _udpClient = udpClient;
+            OnReceive += OnEncryptionInfoMessageReceive;
         }
 
-        /// <summary>
-        /// Sends a network message over the tcp stream of the server-client connection
-        /// </summary>
-        /// <param name="message"></param>
-        public async void SendTcp(NetworkMessage message)
+        private async void OnEncryptionInfoMessageReceive(object sender, NetworkMessageRecieveArgs args)
         {
-            // Serialize the network message
-            byte[] data = _protocolHandler.SerializeMessage(message, _macHandler, _encryption);
+            if (args.Message is not EncryptionInfoMessage msg)
+            {
+                return;
+            }
 
-            // Write to the tcp network stream
-            await _tcpClient.GetStream().WriteAsync(data, 0, data.Length);
-        }
+            // Decrypt information from message with asymmetric encryption from server
+            byte[] symmetricIV = _asymmetricEncryption.Decrypt(msg.SymmetricIV);
+            byte[] symmetricKey = _asymmetricEncryption.Decrypt(msg.SymmetricKey);
+            byte[] macKey = _asymmetricEncryption.Decrypt(msg.MACKey);
 
-        /// <summary>
-        /// Sends a UDP datagramm with the bytes of the given network message
-        /// </summary>
-        /// <param name="message"></param>
-        /// <returns></returns>
-        public async void SendUdpAsync(NetworkMessage message)
-        {
-            // Serialize the network message
-            byte[] data = _protocolHandler.SerializeMessage(message, _macHandler, _encryption);
+            _encryption = new AES256Encryption(symmetricIV, symmetricKey);
+            _macHandler = new HMAC256Handler(macKey);
 
-            // Send datagramm
-            await _udpClient.SendAsync(data, data.Length, UdpEndPoint);
-        }
-
-        public async void BeginReceiveTcpAsync()
-        {
-            // Receive message over tcp stream
-            await ReceiveMessage(_tcpClient.GetStream());
-
-            // Start receiving next message
-            BeginReceiveTcpAsync();
-        }
-
-        public async void ReceiveDatagramAsync(byte[] data)
-        {
-            // Receive message over datagram (converted to stream for deserialization)
-            await ReceiveMessage(new MemoryStream(data));
-        }
-
-        /// <summary>
-        /// Helper method that handles deserialization over the member protocol and
-        /// invokes the OnReceive event
-        /// </summary>
-        /// <param name="stream"></param>
-        /// <returns></returns>
-        protected async Task ReceiveMessage(Stream stream)
-        {
-            // Get message from stream
-            NetworkMessage message = await _protocolHandler.DeserializeMessageAsync(stream, _macHandler, _encryption);
-
-            // Invoke the OnReceive event
-            OnReceive?.Invoke(this, new NetworkMessageRecieveArgs(message));
-        }
-
-        public void Dispose()
-        {
-            _tcpClient.Dispose();
+            _encryption.IsConfigured = true;
+            _macHandler.IsConfigured = true;
         }
     }
 }

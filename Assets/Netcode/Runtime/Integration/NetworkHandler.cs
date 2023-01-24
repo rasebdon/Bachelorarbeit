@@ -1,6 +1,8 @@
 ﻿using Netcode.Behaviour;
 using Netcode.Runtime.Communication.Client;
 using Netcode.Runtime.Communication.Common;
+using Netcode.Runtime.Communication.Common.Logging;
+using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Communication.Common.Serialization;
 using Netcode.Runtime.Communication.Server;
 using System;
@@ -8,6 +10,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using UnityEditor;
 using UnityEngine;
 
 namespace Netcode.Runtime.Integration
@@ -20,10 +23,11 @@ namespace Netcode.Runtime.Integration
         private NetworkClient _client;
 
         // Configuration
-        [SerializeField] private string _hostname = "localhost";
+        [SerializeField] private string _hostname = "127.0.0.1";
         [SerializeField] private ushort _tcpPort = 27600;
         [SerializeField] private ushort _udpPort = 27600;
         [SerializeField] private ushort _maxClients = 10;
+        [SerializeField] private LogLevel _logLevel = LogLevel.Error;
 
         // Controls
         public bool IsServer { get => _isServer; private set => _isServer = value; }
@@ -58,12 +62,13 @@ namespace Netcode.Runtime.Integration
             // Setup protocol
             IMessageSerializer messageSerializer = new MessagePackMessageSerializer();
             IMessageProtocolHandler protocolHandler = new MessageProtocolHandler(messageSerializer); ;
+            ILoggerFactory loggerFactory = new UnityLoggerFactory(_logLevel);
 
             // Setup server
-            _server = new(_tcpPort, _udpPort, _maxClients, protocolHandler);
+            _server = new(_tcpPort, _udpPort, _maxClients, protocolHandler, loggerFactory);
 
             // Setup client
-            _client = new(protocolHandler);
+            _client = new(protocolHandler, loggerFactory.CreateLogger<NetworkClient>());
         }
 
         public void StartServer()
@@ -106,7 +111,7 @@ namespace Netcode.Runtime.Integration
             _started = true;
 
             _server.Start();
-            _client.Connect("localhost", _tcpPort, _udpPort);
+            _client.Connect("127.0.0.1", _tcpPort, _udpPort);
         }
 
         public void InstantiateNetworkObject(GameObject obj, Vector3 position, Quaternion rotation)
@@ -146,8 +151,16 @@ namespace Netcode.Runtime.Integration
             NetworkIdentity networkIdentity = networkObject.GetComponent<NetworkIdentity>();
             networkIdentity.Guid = Guid.NewGuid();
 
-            // Invoke OnNetworkInstantiate
-            networkIdentity.OnServerMessageDistribute?.Invoke("Instantiation");
+            // Send spawn network object message
+            int prefabId = obj.GetInstanceID();
+            networkIdentity.OnDistributeToChannels?.Invoke(
+                new InstantiateNetworkObjectMessage(prefabId, networkIdentity.Guid));
+        }
+
+        private void OnApplicationQuit()
+        {
+            _server.Dispose();
+            _client.Dispose();
         }
     }
 }
