@@ -1,4 +1,5 @@
 ﻿using Netcode.Behaviour;
+using Netcode.Channeling;
 using Netcode.Runtime.Communication.Client;
 using Netcode.Runtime.Communication.Common;
 using Netcode.Runtime.Communication.Common.Logging;
@@ -10,11 +11,14 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Netcode.Runtime.Integration
 {
+    [RequireComponent(typeof(ChannelHandler))]
     public class NetworkHandler : MonoBehaviour
     {
         public static NetworkHandler Instance { get; private set; }
@@ -40,12 +44,15 @@ namespace Netcode.Runtime.Integration
         [SerializeField] private bool _started;
 
         // Instantiation
-        [SerializeField] private Dictionary<Guid, GameObject> _networkObjects;
         [SerializeField] private List<GameObject> _objectRegistry;
         [SerializeField] private GameObject _playerPrefab;
 
+        // Events
+        public Action<NetworkIdentity> OnPlayerSpawn;
+
         private void Awake()
         {
+            // Setup Singleton
             if (Instance != null && Instance != this)
             {
                 Debug.LogError("Cannot have multiple instances of NetworkHandler", this);
@@ -69,6 +76,65 @@ namespace Netcode.Runtime.Integration
 
             // Setup client
             _client = new(protocolHandler, loggerFactory.CreateLogger<NetworkClient>());
+
+            // Setup channel handler
+            _server.OnServerClientConnect += (obj, args) =>
+            {
+                UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                {
+                    // Instantiate player object
+                    NetworkIdentity playerObject = InstantiateNetworkObject(_playerPrefab, Vector3.zero, Quaternion.identity);
+                    playerObject.IsPlayer = true;
+                    playerObject.ClientId = args.Client.ClientId;
+
+                    OnPlayerSpawn?.Invoke(playerObject);
+
+                    Debug.Log($"Spawned player object for client {args.Client.ClientId}!");
+                });
+            };
+
+            _client.OnReceive += InstantiateNetworkObjectClientCallback;
+        }
+
+        private void InstantiateNetworkObjectClientCallback(object sender, NetworkMessageRecieveArgs e)
+        {
+            if(e.Message is InstantiateNetworkObjectMessage msg)
+            {
+                NetworkIdentity networkIdentity = null;
+
+                if (IsClient)
+                {
+                    // Find prefab with id in object registry
+                    GameObject prefab = _objectRegistry.Find(obj => obj.GetInstanceID() == msg.PrefabId);
+
+                    // Instantiate object
+                    GameObject networkObject = Instantiate(prefab, msg.Position, msg.Rotation);
+
+                    // Set the NetworkIdentity
+                    networkIdentity = networkObject.GetComponent<NetworkIdentity>();
+                    networkIdentity.Guid = msg.NetworkIdentityGuid;
+                    networkIdentity.PrefabId = prefab.GetInstanceID();
+                }
+                else if (IsHost)
+                {
+                    // Find existing object
+                    networkIdentity = NetworkIdentity.FindByGuid(msg.NetworkIdentityGuid);
+                }
+
+                // Get object with prefab id
+                if(msg.ClientId.HasValue)
+                {
+                    // Is local player
+                    if(_client.ClientId == msg.ClientId.Value)
+                    {
+                        networkIdentity.IsLocalPlayer = true;
+                    }
+
+                    networkIdentity.ClientId = msg.ClientId.Value;
+                    networkIdentity.IsPlayer = true;
+                    networkIdentity.PrefabId = msg.PrefabId;
+                }
+            }
         }
 
         public void StartServer()
@@ -114,34 +180,34 @@ namespace Netcode.Runtime.Integration
             _client.Connect("127.0.0.1", _tcpPort, _udpPort);
         }
 
-        public void InstantiateNetworkObject(GameObject obj, Vector3 position, Quaternion rotation)
+        public NetworkIdentity InstantiateNetworkObject(GameObject obj, Vector3 position, Quaternion rotation)
         {
             // Check if we started
             if (!_started)
             {
                 Debug.LogError("Cannot instantiate network objects when the server is not started!", this);
-                return;
+                return null;
             }
 
             // Check that we are on the server
             if (IsClient)
             {
                 Debug.LogError("Cannot instantiate network objects on the client!", this);
-                return;
+                return null;
             }
 
             // Check that the object has a NetworkIdentity component attached
             if (!obj.GetComponent<NetworkIdentity>())
             {
                 Debug.LogError("Cannot instantiate network objects without a NetworkIdentity component!", this);
-                return;
+                return null;
             }
 
             // Check that the object is in the registry
             if (!_objectRegistry.Contains(obj))
             {
                 Debug.LogError("Cannot instantiate objects that are not registered in the object registry!", this);
-                return;
+                return null;
             }
 
             // Instantiate the object
@@ -150,17 +216,33 @@ namespace Netcode.Runtime.Integration
             // Set the NetworkIdentity
             NetworkIdentity networkIdentity = networkObject.GetComponent<NetworkIdentity>();
             networkIdentity.Guid = Guid.NewGuid();
+            networkIdentity.PrefabId = obj.GetInstanceID();
 
-            // Send spawn network object message
-            int prefabId = obj.GetInstanceID();
-            networkIdentity.OnDistributeToChannels?.Invoke(
-                new InstantiateNetworkObjectMessage(prefabId, networkIdentity.Guid));
+            return networkIdentity;
         }
 
         private void OnApplicationQuit()
         {
             _server.Dispose();
             _client.Dispose();
+        }
+
+        public void Send<T>(T message, uint clientId) where T : NetworkMessage
+        {
+            if (IsClient)
+            {
+                Task.Run(async () =>
+                {
+                    await _client.SendTcpAsync(message);
+                });
+            }
+            else if (IsServer || IsHost)
+            {
+                Task.Run(async () =>
+                {
+                    await _server.Clients.Find(c => c.ClientId == clientId).SendTcpAsync(message);
+                });
+            }
         }
     }
 }

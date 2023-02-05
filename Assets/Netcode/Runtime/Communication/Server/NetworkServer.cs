@@ -143,9 +143,14 @@ namespace Netcode.Runtime.Communication.Server
                 }
                 else
                 {
-                    // Client connection successful
+                    // Client connection started
                     Clients.Add(client);
-                    OnServerClientConnect?.Invoke(this, new ServerConnectionEventArgs(client));
+                    client.OnConnect += (uint clientId) =>
+                    {
+                        _logger.LogInfo($"Client {clientId} connected!");
+
+                        OnServerClientConnect.Invoke(client, new ServerConnectionEventArgs(client));
+                    };
 
                     // Setup disconnect event
                     client.OnDisconnect += (uint clientId) =>
@@ -154,8 +159,11 @@ namespace Netcode.Runtime.Communication.Server
 
                         OnServerClientDisconnect?.Invoke(this, new ServerConnectionEventArgs(client));
                         Clients.Remove(client);
-                        
-                        client.Dispose();
+
+                        if (!client.Disposed)
+                        {
+                            client.Dispose();
+                        }
                     };
 
                     // Setup receive on client
@@ -270,8 +278,12 @@ namespace Netcode.Runtime.Communication.Server
                 _stopped = true;
 
                 // Dispose clients
-                Clients.ForEach(c => c?.Dispose());
+                NetworkServerClient[] clients = new NetworkServerClient[Clients.Count];
+                Clients.CopyTo(clients);
 
+                clients.ToList().ForEach(c => c?.Dispose());
+
+                Clients.Clear();
                 _udpClient?.Dispose();
                 _tcpServer?.Stop();
 

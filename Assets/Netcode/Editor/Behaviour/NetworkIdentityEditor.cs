@@ -26,6 +26,8 @@ namespace Netcode.Editor.Behaviour
 
             GUI.enabled = false;
             EditorGUILayout.TextField("GUID", netId.Guid.ToString());
+            EditorGUILayout.Toggle("IsLocalPlayer", netId.IsLocalPlayer);
+            EditorGUILayout.Toggle("IsPlayer", netId.IsPlayer);
             GUI.enabled = true;
 
             serializedObject.ApplyModifiedProperties();

@@ -1,60 +1,56 @@
 ﻿using Netcode.Behaviour;
 using Netcode.Runtime.Communication.Common.Messaging;
+using Netcode.Runtime.Integration;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
 namespace Netcode.Channeling
 {
     /// <summary>
-    /// Channel component that forwards messages between their subscribed
-    /// objects and the channel handler. Is disabled on clients
+    /// Channels forward their messages to their subscribed objects
     /// </summary>
-    [RequireComponent(typeof(Collider))]
-    [DisallowMultipleComponent]
-    public class Channel : MonoBehaviour
+    public class Channel
     {
-        public uint ChannelId { get => _channelId; set => _channelId = value; }
-        [SerializeField] private uint _channelId;
-
         [SerializeField] private List<NetworkIdentity> _subscribed;
 
-#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            GenerateGlobalObjectIdHash();
-        }
+        public ChannelType Type { get; }
+        public HashSet<Channel> EnvironmentNeighbors { get; set; }
+        public Channel EnvironmentChannel { get; }
 
-        internal void GenerateGlobalObjectIdHash()
-        {
-            // do NOT regenerate GlobalObjectIdHash for NetworkPrefabs while Editor is in PlayMode
-            if (EditorApplication.isPlaying && !string.IsNullOrEmpty(gameObject.scene.name))
-            {
-                return;
-            }
-
-            // do NOT regenerate GlobalObjectIdHash if Editor is transitioning into or out of PlayMode
-            if (!EditorApplication.isPlaying && EditorApplication.isPlayingOrWillChangePlaymode)
-            {
-                return;
-            }
-
-            var globalObjectIdString = GlobalObjectId.GetGlobalObjectIdSlow(this).ToString();
-            _channelId = (uint)globalObjectIdString.GetHashCode();
-        }
-#endif // UNITY_EDITOR
-
-        private void Start()
+        public Channel(ChannelType type, Channel environmentChannel)
         {
             _subscribed = new();
+            Type = type;
+            EnvironmentNeighbors = new();
+            EnvironmentChannel = environmentChannel;
         }
 
-        public void Publish(NetworkMessage message)
+        public Channel(ChannelType type)
+        {
+            _subscribed = new();
+            Type = type;
+            EnvironmentNeighbors = new();
+            EnvironmentChannel = this;
+        }
+
+        public void Publish<T>(T message) where T : NetworkMessage
         {
             foreach (NetworkIdentity netId in _subscribed)
             {
-                netId.OnReceiveMessage.Invoke(message);
+                netId.OnReceiveMessage?.Invoke(message);
+            }
+        }
+
+        public void PublishToPlayers<T>(T message) where T : NetworkMessage
+        {
+            IEnumerable<NetworkIdentity> distribution = _subscribed.Where(id => id.IsPlayer);
+
+            foreach (NetworkIdentity netId in distribution)
+            {
+                netId.OnReceiveMessage?.Invoke(message);
             }
         }
 
@@ -64,7 +60,6 @@ namespace Netcode.Channeling
         /// <param name="netId"></param>
         public void Subscribe(NetworkIdentity netId)
         {
-            netId.OnDistributeToChannels += Publish;
             _subscribed.Add(netId);
         }
 
@@ -76,26 +71,7 @@ namespace Netcode.Channeling
         {
             if (_subscribed.Contains(netId))
             {
-                netId.OnDistributeToChannels -= Publish;
                 _subscribed.Remove(netId);
-            }
-        }
-
-        private void OnTriggerEnter(Collider other)
-        {
-            // If a network identity enters this channels area, it gets subscribed
-            if (other.GetComponent<NetworkIdentity>() is NetworkIdentity identity)
-            {
-                Subscribe(identity);
-            }
-        }
-
-        private void OnTriggerExit(Collider other)
-        {
-            // If a network identity exits this channels area, it gets unsubscribed
-            if (other.GetComponent<NetworkIdentity>() is NetworkIdentity identity)
-            {
-                Unsubscribe(identity);
             }
         }
     }

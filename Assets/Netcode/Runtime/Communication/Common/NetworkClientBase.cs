@@ -19,6 +19,7 @@ namespace Netcode.Runtime.Communication.Common
         // Events
         public EventHandler<NetworkMessageRecieveArgs> OnReceive;
         public Action<uint> OnDisconnect;
+        public Action<uint> OnConnect;
 
         // TCP related member variables
         protected readonly TcpClient _tcpClient;
@@ -42,7 +43,8 @@ namespace Netcode.Runtime.Communication.Common
 
         protected readonly ILogger<T> _logger;
 
-        protected bool _disposed = false;
+        public bool Disposed { get; private set; } = false;
+
         public NetworkClientBase(
             uint clientId,
             TcpClient client,
@@ -57,12 +59,11 @@ namespace Netcode.Runtime.Communication.Common
             _tcpClient = client;
             _udpClient = udpClient;
             _logger = logger;
-            _disposed = false;
+            Disposed = false;
         }
 
         ~NetworkClientBase()
         {
-            OnDisconnect?.Invoke(ClientId);
             Dispose();
         }
 
@@ -109,7 +110,7 @@ namespace Netcode.Runtime.Communication.Common
             }
             catch (ObjectDisposedException ex)
             {
-                if (!_disposed)
+                if (!Disposed)
                 {
                     _logger.LogError(ex);
                 }
@@ -129,7 +130,7 @@ namespace Netcode.Runtime.Communication.Common
             }
             catch (ObjectDisposedException ex)
             {
-                if (!_disposed)
+                if (!Disposed)
                 {
                     _logger.LogError(ex);
                 }
@@ -158,7 +159,7 @@ namespace Netcode.Runtime.Communication.Common
             }
             catch(Exception ex)
             {
-                if (ex is ObjectDisposedException or IOException && _disposed)
+                if (ex is ObjectDisposedException or IOException && Disposed)
                 {
                     return;
                 }
@@ -175,7 +176,10 @@ namespace Netcode.Runtime.Communication.Common
 
         public void Dispose()
         {
-            _disposed = true;
+            Disposed = true;
+
+            OnDisconnect?.Invoke(ClientId);
+            
             _tcpClient?.Dispose();
         }
     }

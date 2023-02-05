@@ -81,6 +81,7 @@ namespace Netcode.Runtime.Communication.Client
             _encryption.IsConfigured = true;
             _macHandler.IsConfigured = true;
 
+            OnConnect?.Invoke(ClientId);
         }
 
         #endregion

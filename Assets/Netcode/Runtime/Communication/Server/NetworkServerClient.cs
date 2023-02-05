@@ -19,7 +19,7 @@ namespace Netcode.Runtime.Communication.Server
             OnReceive += OnEncryptionInfoMessageReceive;
         }
 
-        private async void OnEncryptionInfoMessageReceive(object sender, NetworkMessageRecieveArgs args)
+        private void OnEncryptionInfoMessageReceive(object sender, NetworkMessageRecieveArgs args)
         {
             if (args.Message is not EncryptionInfoMessage msg)
             {
@@ -36,6 +36,8 @@ namespace Netcode.Runtime.Communication.Server
 
             _encryption.IsConfigured = true;
             _macHandler.IsConfigured = true;
+
+            OnConnect?.Invoke(ClientId);
         }
     }
 }

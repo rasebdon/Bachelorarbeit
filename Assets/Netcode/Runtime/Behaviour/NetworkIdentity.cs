@@ -1,7 +1,9 @@
-﻿using Netcode.Runtime.Communication.Common.Messaging;
+﻿using Netcode.Channeling;
+using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Communication.Server;
 using Netcode.Runtime.Integration;
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -10,6 +12,8 @@ namespace Netcode.Behaviour
     [DisallowMultipleComponent]
     public class NetworkIdentity : MonoBehaviour
     {
+        private static readonly Dictionary<Guid, NetworkIdentity> _identities = new();
+
         public Guid Guid
         {
             get
@@ -29,19 +33,75 @@ namespace Netcode.Behaviour
         [SerializeField] private Guid _guid;
         [SerializeField] private string _guidAsString;
 
-        // Helper properties
-        public bool IsClient { get => NetworkHandler.Instance.IsClient; }
-        public bool IsServer { get => NetworkHandler.Instance.IsServer; }
-        public bool IsHost { get => NetworkHandler.Instance.IsHost; }
-
-        /// <summary>
-        /// Gets invoked on the server from this gameobject to notify the connected channels
-        /// </summary>
-        public Action<NetworkMessage> OnDistributeToChannels;
-
         /// <summary>
         /// Gets invoked when this network identity receives a message
         /// </summary>
         public Action<NetworkMessage> OnReceiveMessage;
+
+        public bool Instantiated { get; private set; }
+
+        // Client side properties
+        public bool IsLocalPlayer { get; set; }
+
+        // Server side properties
+        public int PrefabId { get; set; }
+        public bool IsPlayer { get; set; }
+        public uint ClientId { get; set; }
+
+        private void Start()
+        {
+            _identities.Add(Guid, this);
+
+            if (IsPlayer)
+            {
+                OnReceiveMessage += (msg) =>
+                {
+                    if (msg is InstantiateNetworkObjectMessage message)
+                    {
+                        // Send message through server to client
+                        NetworkHandler.Instance.Send(message, ClientId);
+                    }
+                };
+            }
+        }
+
+        /// <summary>
+        /// Network identity registers itself on the server after the physics update
+        /// (in the physics update, the OnTriggerX functions are called before the update loop)
+        /// </summary>
+        private void Update()
+        {
+            if (!Instantiated)
+            {
+                if (NetworkHandler.Instance.IsClient)
+                {
+                    Instantiated = true;
+                }
+                else
+                {
+                    // Send spawn network object message
+                    ChannelHandler.Instance.DistributeMessageToPlayers(
+                        this,
+                        new InstantiateNetworkObjectMessage(
+                            PrefabId, Guid, IsPlayer ? ClientId : null, transform.rotation, transform.position),
+                        ChannelType.Environment);
+                    Instantiated = true;
+                }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            _identities.Remove(Guid);
+        }
+
+        public static NetworkIdentity FindByGuid(Guid id)
+        {
+            if(_identities.TryGetValue(id, out NetworkIdentity identity))
+            {
+                return identity;
+            }
+            return null;
+        }
     }
 }
