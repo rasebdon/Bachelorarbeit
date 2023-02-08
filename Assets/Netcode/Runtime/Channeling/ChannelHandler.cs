@@ -2,10 +2,13 @@ using Netcode.Behaviour;
 using Netcode.Runtime.Channeling;
 using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Integration;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.Networking;
+using static Unity.VisualScripting.Member;
+using static UnityEngine.EventSystems.EventTrigger;
 
 namespace Netcode.Channeling
 {
@@ -14,7 +17,7 @@ namespace Netcode.Channeling
     {
         public static ChannelHandler Instance { get; private set; }
 
-        private readonly Dictionary<NetworkIdentity, HashSet<Channel>> _channelRegistry = new();
+        private readonly Dictionary<NetworkIdentity, ChannelRegistryEntry> _channelRegistry = new();
 
         private void Awake()
         {
@@ -26,104 +29,113 @@ namespace Netcode.Channeling
             Instance = this;
         }
 
-        public void AddChannels(NetworkIdentity identity, ChannelCollection targetChannelCollection)
+        public void AddChannels(NetworkIdentity identity, ChannelComposition channelComposition)
         {
-            // Check if network identity is has any subscribed channels
-            if(_channelRegistry.TryGetValue(identity, out HashSet<Channel> channels))
+            // Check if network identity is registered in channel registry
+            if (!_channelRegistry.TryGetValue(identity, out var entry))
             {
-                AddIfNotInChannel(identity, targetChannelCollection.InteractionChannel, ref channels);
-                AddIfNotInChannel(identity, targetChannelCollection.EnvironmentChannel, ref channels);
+                entry = CreateAndInsertEntry(identity);
             }
-            // Create network identity with new hashset and channel as content
-            else
+
+            if (!entry.HasChannel(channelComposition))
             {
-                channels = new HashSet<Channel>()
+                entry.AddChannel(channelComposition);
+                channelComposition.Subscribe(identity, ChannelType.Interaction);
+
+                if(entry.ChannelCount == 1)
                 {
-                    targetChannelCollection.InteractionChannel,
-                    targetChannelCollection.EnvironmentChannel
-                };
-                _channelRegistry.Add(identity, channels);
-            }
-
-            // Add the neighboring environment channels of the target interaction channel
-            foreach (Channel neighbor in targetChannelCollection.InteractionChannel.EnvironmentNeighbors)
-            {
-                AddIfNotInChannel(identity, neighbor, ref channels);
+                    channelComposition.Subscribe(identity, ChannelType.Environment);
+                }
             }
         }
 
-        /// <summary>
-        /// Adds the channel to the collection fo the identity and subscribes the identity to the channel
-        /// </summary>
-        /// <param name="identity"></param>
-        /// <param name="channel"></param>
-        /// <param name="channels"></param>
-        private void AddIfNotInChannel(NetworkIdentity identity, Channel channel, ref HashSet<Channel> channels)
-        {
-            if (!channels.Contains(channel))
-            {
-                channels.Add(channel);
-                channel.Subscribe(identity);
-            }
-        }
-
-        public void RemoveChannels(NetworkIdentity identity, ChannelCollection targetChannelCollection)
+        public void RemoveChannels(NetworkIdentity identity, ChannelComposition channelComposition)
         {
             // Check if network identity is in registry
-            if (_channelRegistry.TryGetValue(identity, out HashSet<Channel> channels))
+            if (_channelRegistry.TryGetValue(identity, out var entry) && entry.HasChannel(channelComposition))
             {
-                // Remove the interaction channel 
-                RemoveIfInChannel(identity, targetChannelCollection.InteractionChannel, ref channels);
+                entry.RemoveChannel(channelComposition);
 
-                // Get neighbors of current interaction channels
-                IEnumerable<Channel> expectedEnvironmentChannels = channels
-                    .Where(c => c.Type == ChannelType.Interaction)
-                    .SelectMany(c => c.EnvironmentNeighbors)
-                    .Distinct()
-                    .Concat(
-                        channels.Where(c => c.Type == ChannelType.Interaction)
-                        .Select(c => c.EnvironmentChannel));
-
-                // Remove all environment channels that are currently in the channels of the network object
-                // but not in the expected channels
-                channels.RemoveWhere(c => c.Type == ChannelType.Environment && !expectedEnvironmentChannels.Contains(c));
-            }
-        }
-
-        private void RemoveIfInChannel(NetworkIdentity identity, Channel channel, ref HashSet<Channel> channels)
-        {
-            // Check if the channel is already subscribed
-            if (channels.Contains(channel))
-            {
-                channels.Remove(channel);
-                channel.Unsubscribe(identity);
+                channelComposition.Unsubscribe(identity, ChannelType.Interaction);
+                channelComposition.Unsubscribe(identity, ChannelType.Environment);
             }
         }
 
         public void DistributeMessage<T>(NetworkIdentity source, T message, ChannelType type) where T : NetworkMessage
         {
-            if(_channelRegistry.TryGetValue(source, out HashSet<Channel> channels))
+            // Create registry entry with global channel
+            if(!_channelRegistry.TryGetValue(source, out var entry))
             {
-                IEnumerable<Channel> distribution = channels.Where(c => c.Type == type);
+                CreateAndInsertEntry(source);
+            }
 
-                foreach (Channel channel in distribution)
+            // Distribute to channels
+            if (entry.HasChannels)
+            {
+                // Distribute to main channels
+                entry.CurrentChannel.Publish(message, type, true);
+
+                // If there are more interactions (transitioning)
+                if (type == ChannelType.Interaction)
                 {
-                    channel.Publish(message);
+                    entry.GetWithoutCurrent().ToList().ForEach(ch => ch.Publish(message, type, false));
                 }
             }
         }
-        
-        public void DistributeMessageToPlayers<T>(NetworkIdentity source, T message, ChannelType type) where T : NetworkMessage
-        {
-            if(_channelRegistry.TryGetValue(source, out HashSet<Channel> channels))
-            {
-                IEnumerable<Channel> distribution = channels.Where(c => c.Type == type);
 
-                foreach (Channel channel in distribution)
-                {
-                    channel.PublishToPlayers(message);
-                }
+        public ChannelComposition GetNextCollection(NetworkIdentity identity)
+        {
+            if (_channelRegistry.TryGetValue(identity, out var entry))
+            {
+                return entry.CurrentChannel;
             }
+            return null;
+        }
+
+        public bool HasChannels(NetworkIdentity identity)
+        {
+            return _channelRegistry.ContainsKey(identity) && _channelRegistry[identity].HasChannels;
+        }
+
+        // Registry Helper
+
+        ChannelRegistryEntry CreateAndInsertEntry(NetworkIdentity identity)
+        {
+            var entry = new ChannelRegistryEntry(identity);
+            _channelRegistry.Add(identity, entry);
+            return entry;
+        }
+    }
+
+    public class ChannelRegistryEntry
+    {
+        public NetworkIdentity Identity { get; }
+        public bool HasChannels { get => _channels.Any(); }
+        public ChannelComposition CurrentChannel { get => _channels.FirstOrDefault(); }
+        public int ChannelCount { get => _channels.Count; }
+
+        private readonly List<ChannelComposition> _channels = new();
+
+        public IEnumerable<ChannelComposition> GetWithoutCurrent()
+        {
+            return _channels.Where(ch => ch != CurrentChannel);
+        }
+
+        public bool HasChannel(ChannelComposition composition) => _channels.Contains(composition);
+
+        public void AddChannel(ChannelComposition composition)
+        {
+            _channels.Add(composition);
+        }
+
+        public void RemoveChannel(ChannelComposition composition)
+        {
+            _channels.Remove(composition);
+        }
+
+        public ChannelRegistryEntry(NetworkIdentity identity)
+        {
+            Identity = identity;
         }
     }
 }

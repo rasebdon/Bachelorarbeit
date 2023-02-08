@@ -57,7 +57,7 @@ namespace Netcode.Runtime.Communication.Common.Serialization
             {
                 if(ex is MessagePackSerializationException mpse && mpse.InnerException is EndOfStreamException)
                 {
-                    throw new ClientDisconnectedException();
+                    throw new RemoteClosedException();
                 }
                 throw ex;
             }

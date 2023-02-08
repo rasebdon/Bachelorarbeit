@@ -1,4 +1,5 @@
-﻿using Netcode.Runtime.Communication.Common.Messaging;
+﻿using Netcode.Runtime.Communication.Common.Exceptions;
+using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Communication.Common.Security;
 using Netcode.Runtime.Communication.Common.Serialization;
 using Netcode.Runtime.Communication.Server;
@@ -6,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading.Tasks;
@@ -45,6 +47,11 @@ namespace Netcode.Runtime.Communication.Common
             byte[] dataSizeBuffer = new byte[4];
             await stream.ReadAsync(dataSizeBuffer, 0, dataSizeBuffer.Length);
             int dataSize = BitConverter.ToInt32(dataSizeBuffer, 0);
+
+            if(dataSize == 0)
+            {
+                throw new RemoteClosedException("Error in deserialization, message size was 0!");
+            }
 
             // Get data
             byte[] dataBuffer = new byte[dataSize];

@@ -77,10 +77,10 @@ namespace Netcode.Behaviour
                 {
                     Instantiated = true;
                 }
-                else
+                else if(ChannelHandler.Instance.HasChannels(this))
                 {
                     // Send spawn network object message
-                    ChannelHandler.Instance.DistributeMessageToPlayers(
+                    ChannelHandler.Instance.DistributeMessage(
                         this,
                         new InstantiateNetworkObjectMessage(
                             PrefabId, Guid, IsPlayer ? ClientId : null, transform.rotation, transform.position),

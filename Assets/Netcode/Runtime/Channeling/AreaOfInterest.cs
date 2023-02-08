@@ -54,7 +54,7 @@ namespace Netcode.Channeling
 
         private void OnTriggerEnter(Collider other)
         {
-            if (other.GetComponent<ChannelCollection>() is ChannelCollection channel)
+            if (other.GetComponent<ChannelComposition>() is ChannelComposition channel)
             {
                 _handler.AddChannels(_identity, channel);
             }
@@ -62,7 +62,7 @@ namespace Netcode.Channeling
 
         private void OnTriggerExit(Collider other)
         {
-            if (other.GetComponent<ChannelCollection>() is ChannelCollection channel)
+            if (other.GetComponent<ChannelComposition>() is ChannelComposition channel)
             {
                 _handler.RemoveChannels(_identity, channel);
             }

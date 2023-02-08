@@ -1,7 +1,9 @@
 ﻿using Netcode.Runtime.Integration;
 using System;
 using UnityEditor;
+using UnityEditor.Sprites;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Netcode.Editor.Integration
 {
@@ -46,9 +48,36 @@ namespace Netcode.Editor.Integration
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_isServer"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_isClient"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_isHost"));
-            
             GUI.enabled = true;
-            
+
+            SceneAsset oldScene = null;
+            var menuSceneBuildIndex = serializedObject.FindProperty("_menuSceneBuildIndex");
+            bool error = false;
+
+            if(menuSceneBuildIndex.intValue != -1)
+            {
+                try
+                {
+                    oldScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(SceneManager.GetSceneByBuildIndex(menuSceneBuildIndex.intValue).path);
+                }
+                catch
+                {
+                    error = true;
+                }
+            }
+
+            var newScene = EditorGUILayout.ObjectField("Menu Scene", oldScene, typeof(SceneAsset), false) as SceneAsset;
+
+            if (!error)
+            {
+                int newSceneBuildIndex = SceneManager.GetSceneByPath(AssetDatabase.GetAssetPath(newScene)).buildIndex;
+
+                if (EditorGUI.EndChangeCheck())
+                {
+                    menuSceneBuildIndex.intValue = newSceneBuildIndex;
+                }
+            }
+
             NetcodeGUI.DrawHorizontalGUILine();
             EditorGUILayout.EndVertical();
         }

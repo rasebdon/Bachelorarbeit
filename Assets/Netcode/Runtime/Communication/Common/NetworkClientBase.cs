@@ -154,6 +154,8 @@ namespace Netcode.Runtime.Communication.Common
                 // Get message from stream
                 NetworkMessage message = await _protocolHandler.DeserializeMessageAsync(stream, _macHandler, _encryption);
 
+                _logger.LogDetail($"Received message {message.GetType().Name}");
+
                 // Invoke the OnReceive event
                 OnReceive?.Invoke(this, new NetworkMessageRecieveArgs(message));
             }
@@ -164,9 +166,10 @@ namespace Netcode.Runtime.Communication.Common
                     return;
                 }
 
-                if (ex is ClientDisconnectedException)
+                if (ex is RemoteClosedException)
                 {
-                    _logger.LogInfo("Client closed connection!");
+                    _logger.LogInfo("Remote closed connection!");
+                    Dispose();
                     return;
                 }
 

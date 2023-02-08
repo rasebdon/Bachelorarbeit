@@ -7,14 +7,10 @@ using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Communication.Common.Serialization;
 using Netcode.Runtime.Communication.Server;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Collections.ObjectModel;
 using System.Threading.Tasks;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
+using UnityEngine.SceneManagement;
 
 namespace Netcode.Runtime.Integration
 {
@@ -32,6 +28,7 @@ namespace Netcode.Runtime.Integration
         [SerializeField] private ushort _udpPort = 27600;
         [SerializeField] private ushort _maxClients = 10;
         [SerializeField] private LogLevel _logLevel = LogLevel.Error;
+        [SerializeField] private int _menuSceneBuildIndex;
 
         // Controls
         public bool IsServer { get => _isServer; private set => _isServer = value; }
@@ -41,6 +38,7 @@ namespace Netcode.Runtime.Integration
         public bool IsHost { get => _isHost; private set => _isHost = value; }
         [SerializeField] private bool _isHost;
 
+        public bool IsStarted { get => _started; private set => _started = value; }
         [SerializeField] private bool _started;
 
         // Instantiation
@@ -62,7 +60,10 @@ namespace Netcode.Runtime.Integration
 
             // Add player prefab to registry
             _objectRegistry ??= new();
-            if(_playerPrefab) _objectRegistry.Add(_playerPrefab);
+            if(_playerPrefab && !_objectRegistry.Contains(_playerPrefab))
+            {
+                _objectRegistry.Add(_playerPrefab);
+            }
 
             DontDestroyOnLoad(this);
 
@@ -94,6 +95,13 @@ namespace Netcode.Runtime.Integration
             };
 
             _client.OnReceive += InstantiateNetworkObjectClientCallback;
+            _client.OnDisconnect += ReloadSceneOnClientDisconnect;
+        }
+
+        private void ReloadSceneOnClientDisconnect(uint obj)
+        {
+            Destroy(gameObject); // Delete "Session"
+            SceneManager.LoadScene(_menuSceneBuildIndex);
         }
 
         private void InstantiateNetworkObjectClientCallback(object sender, NetworkMessageRecieveArgs e)
@@ -105,7 +113,7 @@ namespace Netcode.Runtime.Integration
                 if (IsClient)
                 {
                     // Find prefab with id in object registry
-                    GameObject prefab = _objectRegistry.Find(obj => obj.GetInstanceID() == msg.PrefabId);
+                    GameObject prefab = _objectRegistry[msg.PrefabId];
 
                     // Instantiate object
                     GameObject networkObject = Instantiate(prefab, msg.Position, msg.Rotation);
@@ -113,7 +121,7 @@ namespace Netcode.Runtime.Integration
                     // Set the NetworkIdentity
                     networkIdentity = networkObject.GetComponent<NetworkIdentity>();
                     networkIdentity.Guid = msg.NetworkIdentityGuid;
-                    networkIdentity.PrefabId = prefab.GetInstanceID();
+                    networkIdentity.PrefabId = msg.PrefabId;
                 }
                 else if (IsHost)
                 {
@@ -139,51 +147,51 @@ namespace Netcode.Runtime.Integration
 
         public void StartServer()
         {
-            if (_started)
+            if (IsStarted)
             {
                 Debug.Log("Cannot start server if network manager has already started a client or server!");
                 return;
             }
 
             IsServer = true;
-            _started = true;
+            IsStarted = true;
 
             _server.Start();
         }
 
-        public void StartClient()
+        public async void StartClient()
         {
-            if (_started)
+            if (IsStarted)
             {
                 Debug.Log("Cannot start server if network manager has already started a client or server!");
                 return;
             }
 
             IsClient = true;
-            _started = true;
+            IsStarted = true;
 
-            _client.Connect(_hostname, _tcpPort, _udpPort);
+            await _client.Connect(_hostname, _tcpPort, _udpPort);
         }
 
-        public void StartHost()
+        public async void StartHost()
         {
-            if (_started)
+            if (IsStarted)
             {
                 Debug.Log("Cannot start server if network manager has already started a client or server!");
                 return;
             }
 
             IsHost = true;
-            _started = true;
+            IsStarted = true;
 
             _server.Start();
-            _client.Connect("127.0.0.1", _tcpPort, _udpPort);
+            await _client.Connect("127.0.0.1", _tcpPort, _udpPort);
         }
 
         public NetworkIdentity InstantiateNetworkObject(GameObject obj, Vector3 position, Quaternion rotation)
         {
             // Check if we started
-            if (!_started)
+            if (!IsStarted)
             {
                 Debug.LogError("Cannot instantiate network objects when the server is not started!", this);
                 return null;
@@ -216,7 +224,7 @@ namespace Netcode.Runtime.Integration
             // Set the NetworkIdentity
             NetworkIdentity networkIdentity = networkObject.GetComponent<NetworkIdentity>();
             networkIdentity.Guid = Guid.NewGuid();
-            networkIdentity.PrefabId = obj.GetInstanceID();
+            networkIdentity.PrefabId = _objectRegistry.IndexOf(obj);
 
             return networkIdentity;
         }

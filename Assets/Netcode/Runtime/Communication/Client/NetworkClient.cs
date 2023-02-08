@@ -6,8 +6,7 @@ using Netcode.Runtime.Communication.Server;
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using UnityEditor.PackageManager;
+using System.Threading.Tasks;
 
 namespace Netcode.Runtime.Communication.Client
 {
@@ -28,9 +27,23 @@ namespace Netcode.Runtime.Communication.Client
             OnReceive += OnConnectionInfoMessageReceive;
         }
 
-        public async void Connect(string hostname, ushort tcpPort, ushort udpPort)
+        public async Task Connect(string hostname, ushort tcpPort, ushort udpPort)
         {
-            await _tcpClient.ConnectAsync(hostname, tcpPort);
+            try
+            {
+                await _tcpClient.ConnectAsync(hostname, tcpPort);
+            }
+            catch (SocketException)
+            {
+                _logger.LogWarning("Connection to server failed, retrying...");
+                await Connect(hostname, tcpPort, udpPort);
+                return;
+            }
+            catch(Exception ex)
+            {
+                throw ex;
+            }
+            
             UdpEndPoint = new IPEndPoint(IPAddress.Parse(hostname), udpPort);
 
             BeginReceiveTcpAsync();
