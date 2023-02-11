@@ -61,6 +61,16 @@ namespace Netcode.Channeling
             }
         }
 
+        public void RemoveIdentity(NetworkIdentity identity)
+        {
+            // Check if network identity is in registry
+            if (_channelRegistry.TryGetValue(identity, out var entry))
+            {
+                entry.UnsubscribeAll();
+                _channelRegistry.Remove(identity);
+            }
+        }
+
         public void DistributeMessage<T>(NetworkIdentity source, T message, ChannelType type) where T : NetworkMessage
         {
             // Create registry entry with global channel
@@ -131,6 +141,11 @@ namespace Netcode.Channeling
         public void RemoveChannel(ChannelComposition composition)
         {
             _channels.Remove(composition);
+        }
+
+        internal void UnsubscribeAll()
+        {
+            _channels.ForEach(ch => { ch.Unsubscribe(Identity, ChannelType.Environment); ch.Unsubscribe(Identity, ChannelType.Interaction); });
         }
 
         public ChannelRegistryEntry(NetworkIdentity identity)

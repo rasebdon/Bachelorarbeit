@@ -160,10 +160,7 @@ namespace Netcode.Runtime.Communication.Server
                         OnServerClientDisconnect?.Invoke(this, new ServerConnectionEventArgs(client));
                         Clients.Remove(client);
 
-                        if (!client.Disposed)
-                        {
-                            client.Dispose();
-                        }
+                        client.Dispose();
                     };
 
                     // Setup receive on client
@@ -178,8 +175,6 @@ namespace Netcode.Runtime.Communication.Server
 
                     // Send connection informations to client
                     await client.SendTcpAsync(new ConnectionInfoMessage(client.ClientId, _asymmetricEncryption.PublicKey));
-
-                    _logger.LogInfo("Client connected successfully");
 
                     client.BeginReceiveTcpAsync();
                 }
@@ -229,6 +224,15 @@ namespace Netcode.Runtime.Communication.Server
                             if (client == null)
                             {
                                 _logger.LogError($"Could not find any client with client id {msg.ClientId} to register udp with!");
+                                _udpClient.BeginReceive(OnUdpReceive, null);
+                                return;
+                            }
+
+                            if (client.UdpIsConfigured)
+                            {
+                                _logger.LogError($"Cannot reconfigure UDP on client {msg.ClientId}!");
+                                _udpClient.BeginReceive(OnUdpReceive, null);
+                                return;
                             }
 
                             // Set the client endpoint to the received message endpoint

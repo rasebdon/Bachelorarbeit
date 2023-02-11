@@ -58,8 +58,21 @@ namespace Netcode.Behaviour
                 {
                     if (msg is InstantiateNetworkObjectMessage message)
                     {
-                        // Send message through server to client
+                        // Also sync this object to the player
+                        if(message.ClientId.HasValue && message.ClientId != this.ClientId)
+                        {
+                            var thisObjectSync = new InstantiateNetworkObjectMessage(
+                            name, PrefabId, Guid, IsPlayer ? ClientId : null, transform.rotation, transform.position);
+                            NetworkHandler.Instance.Send(thisObjectSync, message.ClientId.Value);
+                        }
+
+                        // Send message from server to client
                         NetworkHandler.Instance.Send(message, ClientId);
+                    }
+                    else if (msg is DestroyNetworkObjectMessage message1)
+                    {
+                        // Send message from server to client
+                        NetworkHandler.Instance.Send(message1, ClientId);
                     }
                 };
             }
@@ -83,7 +96,7 @@ namespace Netcode.Behaviour
                     ChannelHandler.Instance.DistributeMessage(
                         this,
                         new InstantiateNetworkObjectMessage(
-                            PrefabId, Guid, IsPlayer ? ClientId : null, transform.rotation, transform.position),
+                            name, PrefabId, Guid, IsPlayer ? ClientId : null, transform.rotation, transform.position),
                         ChannelType.Environment);
                     Instantiated = true;
                 }
@@ -92,6 +105,16 @@ namespace Netcode.Behaviour
 
         private void OnDestroy()
         {
+            if (!NetworkHandler.Instance.IsClient)
+            {
+                // Send destroy message to clients
+                ChannelHandler.Instance.DistributeMessage(
+                this,
+                new DestroyNetworkObjectMessage(Guid),
+                ChannelType.Environment);
+            }
+
+            ChannelHandler.Instance.RemoveIdentity(this);
             _identities.Remove(Guid);
         }
 

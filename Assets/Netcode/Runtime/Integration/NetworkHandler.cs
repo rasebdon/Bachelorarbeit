@@ -44,6 +44,7 @@ namespace Netcode.Runtime.Integration
         // Instantiation
         [SerializeField] private List<GameObject> _objectRegistry;
         [SerializeField] private GameObject _playerPrefab;
+        private readonly Dictionary<uint, NetworkIdentity> _playerObjects = new();
 
         // Events
         public Action<NetworkIdentity> OnPlayerSpawn;
@@ -64,6 +65,7 @@ namespace Netcode.Runtime.Integration
             {
                 _objectRegistry.Add(_playerPrefab);
             }
+            _playerObjects.Clear();
 
             DontDestroyOnLoad(this);
 
@@ -84,18 +86,45 @@ namespace Netcode.Runtime.Integration
                 UnityMainThreadDispatcher.Instance().Enqueue(() =>
                 {
                     // Instantiate player object
-                    NetworkIdentity playerObject = InstantiateNetworkObject(_playerPrefab, Vector3.zero, Quaternion.identity);
+                    NetworkIdentity playerObject = InstantiateNetworkObject(_playerPrefab, Vector3.zero, Quaternion.identity, $"Player_{args.Client.ClientId}");
                     playerObject.IsPlayer = true;
                     playerObject.ClientId = args.Client.ClientId;
+                    _playerObjects.Add(playerObject.ClientId, playerObject);
 
                     OnPlayerSpawn?.Invoke(playerObject);
 
                     Debug.Log($"Spawned player object for client {args.Client.ClientId}!");
                 });
             };
+            _server.OnServerClientDisconnect += (obj, args) =>
+            {
+                UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                {
+                    if (_playerObjects.TryGetValue(args.Client.ClientId, out var playerObject))
+                    {
+                        Destroy(playerObject.gameObject);
+
+                        // TODO: Send destroy object to other clients
+                    }
+                });
+            };
 
             _client.OnReceive += InstantiateNetworkObjectClientCallback;
+            _client.OnReceive += DestroyNetworkObjectClientCallback;
             _client.OnDisconnect += ReloadSceneOnClientDisconnect;
+        }
+
+        private void DestroyNetworkObjectClientCallback(object sender, NetworkMessageRecieveArgs e)
+        {
+            if (e.Message is DestroyNetworkObjectMessage msg)
+            {
+                NetworkIdentity netId = NetworkIdentity.FindByGuid(msg.Identity);
+
+                if(netId != null)
+                {
+                    Destroy(netId.gameObject);
+                }
+            }
         }
 
         private void ReloadSceneOnClientDisconnect(uint obj)
@@ -112,6 +141,13 @@ namespace Netcode.Runtime.Integration
 
                 if (IsClient)
                 {
+                    // TODO: Find out why instantiation is multiple times
+                    // Try find existing object
+                    if (NetworkIdentity.FindByGuid(msg.NetworkIdentityGuid) != null)
+                    {
+                        return;
+                    }
+
                     // Find prefab with id in object registry
                     GameObject prefab = _objectRegistry[msg.PrefabId];
 
@@ -129,8 +165,10 @@ namespace Netcode.Runtime.Integration
                     networkIdentity = NetworkIdentity.FindByGuid(msg.NetworkIdentityGuid);
                 }
 
+                networkIdentity.name = msg.ObjectName;
+
                 // Get object with prefab id
-                if(msg.ClientId.HasValue)
+                if (msg.ClientId.HasValue)
                 {
                     // Is local player
                     if(_client.ClientId == msg.ClientId.Value)
@@ -187,8 +225,11 @@ namespace Netcode.Runtime.Integration
             _server.Start();
             await _client.Connect("127.0.0.1", _tcpPort, _udpPort);
         }
-
         public NetworkIdentity InstantiateNetworkObject(GameObject obj, Vector3 position, Quaternion rotation)
+        {
+            return InstantiateNetworkObject(obj, position, rotation, obj.name);
+        }
+        public NetworkIdentity InstantiateNetworkObject(GameObject obj, Vector3 position, Quaternion rotation, string objectName)
         {
             // Check if we started
             if (!IsStarted)
@@ -223,6 +264,7 @@ namespace Netcode.Runtime.Integration
 
             // Set the NetworkIdentity
             NetworkIdentity networkIdentity = networkObject.GetComponent<NetworkIdentity>();
+            networkIdentity.name = objectName;
             networkIdentity.Guid = Guid.NewGuid();
             networkIdentity.PrefabId = _objectRegistry.IndexOf(obj);
 

@@ -87,7 +87,7 @@ namespace Netcode.Runtime.Communication.Common
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        public async Task SendUdpAsync(NetworkMessage message)
+        public async Task SendUdpAsync<MessageType>(MessageType message) where MessageType : NetworkMessage
         {
             _logger.LogDetail($"Sending {message.GetType().Name} over UDP");
 
@@ -112,12 +112,12 @@ namespace Netcode.Runtime.Communication.Common
             {
                 if (!Disposed)
                 {
-                    _logger.LogError(ex);
+                    _logger.LogError($"Exception occurred in {nameof(BeginReceiveTcpAsync)}: {ex}");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex);
+                _logger.LogError($"Exception occurred in {nameof(BeginReceiveTcpAsync)}: {ex}");
             }
         }
 
@@ -132,12 +132,12 @@ namespace Netcode.Runtime.Communication.Common
             {
                 if (!Disposed)
                 {
-                    _logger.LogError(ex);
+                    _logger.LogError($"Exception occurred in {nameof(ReceiveDatagramAsync)}: {ex}");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex);
+                _logger.LogError($"Exception occurred in {nameof(ReceiveDatagramAsync)}: {ex}");
             }
         }
 
@@ -173,16 +173,19 @@ namespace Netcode.Runtime.Communication.Common
                     return;
                 }
 
-                _logger.LogError(ex);
+                _logger.LogError($"Fatal exception occurred in {nameof(ReceiveMessage)}: {ex}");
             }
         }
 
         public void Dispose()
         {
-            Disposed = true;
+            if (Disposed)
+            {
+                return;
+            }
 
+            Disposed = true;
             OnDisconnect?.Invoke(ClientId);
-            
             _tcpClient?.Dispose();
         }
     }
