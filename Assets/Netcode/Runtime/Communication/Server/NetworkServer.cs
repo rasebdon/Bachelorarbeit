@@ -135,7 +135,7 @@ namespace Netcode.Runtime.Communication.Server
                 if (Clients.Count == MaxClients)
                 {
                     // Send the client that the server is currently full
-                    await client.SendTcpAsync(new ServerFullMessage());
+                    client.SendTcp(new ServerFullMessage());
                     client.Dispose();
 
                     _logger.LogInfo("Client rejected because server is full");
@@ -174,7 +174,7 @@ namespace Netcode.Runtime.Communication.Server
                     };
 
                     // Send connection informations to client
-                    await client.SendTcpAsync(new ConnectionInfoMessage(client.ClientId, _asymmetricEncryption.PublicKey));
+                    client.SendTcp(new ConnectionInfoMessage(client.ClientId, _asymmetricEncryption.PublicKey));
 
                     client.BeginReceiveTcpAsync();
                 }

@@ -1,10 +1,8 @@
 ﻿using Netcode.Channeling;
 using Netcode.Runtime.Communication.Common.Messaging;
-using Netcode.Runtime.Communication.Server;
 using Netcode.Runtime.Integration;
 using System;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 
 namespace Netcode.Behaviour
@@ -52,30 +50,35 @@ namespace Netcode.Behaviour
         {
             _identities.Add(Guid, this);
 
-            if (IsPlayer)
+            OnReceiveMessage += (msg) =>
             {
-                OnReceiveMessage += (msg) =>
+                if (IsPlayer)
                 {
-                    if (msg is InstantiateNetworkObjectMessage message)
+                    if (msg is InstantiateNetworkObjectMessage inomToPlayer)
                     {
-                        // Also sync this object to the player
-                        if(message.ClientId.HasValue && message.ClientId != this.ClientId)
-                        {
-                            var thisObjectSync = new InstantiateNetworkObjectMessage(
-                            name, PrefabId, Guid, IsPlayer ? ClientId : null, transform.rotation, transform.position);
-                            NetworkHandler.Instance.Send(thisObjectSync, message.ClientId.Value);
-                        }
+                        // Send message from server to client
+                        NetworkHandler.Instance.Send(inomToPlayer, ClientId);
+                    }
+                    else if (msg is DestroyNetworkObjectMessage dnomToPlayer)
+                    {
+                        // Send message from server to client
+                        NetworkHandler.Instance.Send(dnomToPlayer, ClientId);
+                    }
+                }
 
-                        // Send message from server to client
-                        NetworkHandler.Instance.Send(message, ClientId);
-                    }
-                    else if (msg is DestroyNetworkObjectMessage message1)
+                if (msg is InstantiateNetworkObjectMessage inomToPlayerFromObject)
+                {
+                    // Also sync this object to the player
+                    if (inomToPlayerFromObject.ClientId.HasValue && 
+                        inomToPlayerFromObject.ClientId != this.ClientId)
                     {
-                        // Send message from server to client
-                        NetworkHandler.Instance.Send(message1, ClientId);
+                        var thisObjectSync = new InstantiateNetworkObjectMessage(
+                        name, PrefabId, Guid, IsPlayer ? ClientId : null, transform.rotation, transform.position);
+
+                        NetworkHandler.Instance.Send(thisObjectSync, inomToPlayerFromObject.ClientId.Value);
                     }
-                };
-            }
+                }
+            };
         }
 
         /// <summary>

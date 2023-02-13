@@ -89,7 +89,7 @@ namespace Netcode.Runtime.Communication.Client
 
             await SendUdpAsync(new RegisterUdpMessage(ClientId));
 
-            await SendTcpAsync(answer);
+            SendTcp(answer);
 
             _encryption.IsConfigured = true;
             _macHandler.IsConfigured = true;

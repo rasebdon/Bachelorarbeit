@@ -92,8 +92,6 @@ namespace Netcode.Runtime.Integration
                     _playerObjects.Add(playerObject.ClientId, playerObject);
 
                     OnPlayerSpawn?.Invoke(playerObject);
-
-                    Debug.Log($"Spawned player object for client {args.Client.ClientId}!");
                 });
             };
             _server.OnServerClientDisconnect += (obj, args) =>
@@ -281,17 +279,11 @@ namespace Netcode.Runtime.Integration
         {
             if (IsClient)
             {
-                Task.Run(async () =>
-                {
-                    await _client.SendTcpAsync(message);
-                });
+                _client.SendTcp(message);
             }
             else if (IsServer || IsHost)
             {
-                Task.Run(async () =>
-                {
-                    await _server.Clients.Find(c => c.ClientId == clientId).SendTcpAsync(message);
-                });
+                _server.Clients.Find(c => c.ClientId == clientId).SendTcp(message);
             }
         }
     }

@@ -42,7 +42,7 @@ namespace Netcode.Runtime.Communication.Common.Serialization
             // Set options
             _options = MessagePackSerializerOptions
                 .Standard
-                .WithCompression(MessagePackCompression.Lz4Block)
+                //.WithCompression(MessagePackCompression.Lz4Block)
                 .WithSecurity(MessagePackSecurity.TrustedData)
                 .WithResolver(resolver);
         }

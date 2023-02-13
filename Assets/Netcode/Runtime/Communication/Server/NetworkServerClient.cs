@@ -7,6 +7,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Netcode.Runtime.Communication.Server
@@ -36,6 +37,8 @@ namespace Netcode.Runtime.Communication.Server
 
             _encryption.IsConfigured = true;
             _macHandler.IsConfigured = true;
+
+            _logger.LogInfo($"Encryption for client {ClientId} configured!");
 
             OnConnect?.Invoke(ClientId);
         }

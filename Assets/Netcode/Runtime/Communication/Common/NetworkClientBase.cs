@@ -9,6 +9,8 @@ using System.Net;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices.ComTypes;
 using Netcode.Runtime.Communication.Common.Exceptions;
+using System.Linq;
+using System.Text;
 
 namespace Netcode.Runtime.Communication.Common
 {
@@ -67,19 +69,23 @@ namespace Netcode.Runtime.Communication.Common
             Dispose();
         }
 
+        private readonly object _tcpWriteLock = new();
         /// <summary>
         /// Sends a network message over the tcp stream of the server-client connection
         /// </summary>
         /// <param name="message"></param>
-        public async Task SendTcpAsync<MessageType>(MessageType message) where MessageType : NetworkMessage
+        public void SendTcp<MessageType>(MessageType message) where MessageType : NetworkMessage
         {
             // Serialize the network message
             byte[] data = _protocolHandler.SerializeMessage(message, _macHandler, _encryption);
 
-            // Write to the tcp network stream
-            await _tcpClient.GetStream().WriteAsync(data, 0, data.Length);
+            lock (_tcpWriteLock)
+            {
+                // Write to the tcp network stream
+                _tcpClient.GetStream().Write(data, 0, data.Length);
+            }
 
-            _logger.LogDetail($"Sending {message.GetType().Name} over TCP");
+            _logger.LogDetail($"Sending {message.GetType().Name} over TCP to client {ClientId} with MAC-Key {_macHandler?.Key.FirstOrDefault()} and ENC-Key {_encryption?.Key.FirstOrDefault()}\nData: {Encoding.ASCII.GetString(data)}");
         }
 
         /// <summary>
@@ -89,13 +95,13 @@ namespace Netcode.Runtime.Communication.Common
         /// <returns></returns>
         public async Task SendUdpAsync<MessageType>(MessageType message) where MessageType : NetworkMessage
         {
-            _logger.LogDetail($"Sending {message.GetType().Name} over UDP");
-
             // Serialize the network message
             byte[] data = _protocolHandler.SerializeMessage(message, _macHandler, _encryption);
 
             // Send datagramm
             await _udpClient.SendAsync(data, data.Length, UdpEndPoint);
+
+            _logger.LogDetail($"Sending {message.GetType().Name} over UDP to client {ClientId} with MAC-Key {_macHandler?.Key.FirstOrDefault()} and ENC-Key {_encryption?.Key.FirstOrDefault()}\nData: {Encoding.ASCII.GetString(data)}");
         }
 
         public async void BeginReceiveTcpAsync()
