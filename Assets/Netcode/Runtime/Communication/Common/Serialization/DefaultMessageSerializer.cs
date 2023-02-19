@@ -11,13 +11,12 @@ using UnityEditor;
 
 namespace Netcode.Runtime.Communication.Common.Serialization
 {
-    public class MessagePackMessageSerializer : IMessageSerializer
+    public class DefaultMessageSerializer : IMessageSerializer
     {
         private readonly Map<short, Type> MessageTypes = new();
+        private readonly IDataSerializer _serializer;
 
-        private readonly MessagePackSerializerOptions _options;
-
-        public MessagePackMessageSerializer()
+        public DefaultMessageSerializer(IDataSerializer serializer)
         {
             // Get all message types from Assembly
             var types = AppDomain.CurrentDomain.GetAssemblies()
@@ -34,33 +33,12 @@ namespace Netcode.Runtime.Communication.Common.Serialization
                 MessageTypes.Add(i, type);
             }
 
-            // Load standard resolver
-            var resolver = CompositeResolver.Create(
-                ContractlessStandardResolverAllowPrivate.Instance
-            );
-
-            // Set options
-            _options = MessagePackSerializerOptions
-                .Standard
-                //.WithCompression(MessagePackCompression.Lz4Block)
-                .WithSecurity(MessagePackSecurity.TrustedData)
-                .WithResolver(resolver);
+            _serializer = serializer;
         }
 
         public NetworkMessage Deserialize(byte[] data, Type messageType)
         {
-            try
-            {
-                return (NetworkMessage)MessagePackSerializer.Deserialize(messageType, data, _options);
-            }
-            catch (Exception ex)
-            {
-                if(ex is MessagePackSerializationException mpse && mpse.InnerException is EndOfStreamException)
-                {
-                    throw new RemoteClosedException();
-                }
-                throw ex;
-            }
+            return _serializer.Deserialize(data, messageType) as NetworkMessage;
         }
 
         public Type GetMessageType(short messageTypeId)
@@ -75,7 +53,7 @@ namespace Netcode.Runtime.Communication.Common.Serialization
 
         public byte[] Serialize<T>(T message) where T : NetworkMessage
         {
-            return MessagePackSerializer.Serialize(message, _options);
+            return _serializer.Serialize(message);
         }
     }
 

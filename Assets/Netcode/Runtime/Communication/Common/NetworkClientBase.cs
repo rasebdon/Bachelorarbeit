@@ -88,18 +88,22 @@ namespace Netcode.Runtime.Communication.Common
             _logger.LogDetail($"Sending {message.GetType().Name} over TCP to client {ClientId} with MAC-Key {_macHandler?.Key.FirstOrDefault()} and ENC-Key {_encryption?.Key.FirstOrDefault()}\nData: {Encoding.ASCII.GetString(data)}");
         }
 
+        private readonly object _udpWriteLock = new();
         /// <summary>
         /// Sends a UDP datagramm with the bytes of the given network message
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        public async Task SendUdpAsync<MessageType>(MessageType message) where MessageType : NetworkMessage
+        public void SendUdp<MessageType>(MessageType message) where MessageType : NetworkMessage
         {
             // Serialize the network message
             byte[] data = _protocolHandler.SerializeMessage(message, _macHandler, _encryption);
 
-            // Send datagramm
-            await _udpClient.SendAsync(data, data.Length, UdpEndPoint);
+            lock (_udpWriteLock)
+            {
+                // Send datagramm
+                _udpClient.Send(data, data.Length, UdpEndPoint);
+            }
 
             _logger.LogDetail($"Sending {message.GetType().Name} over UDP to client {ClientId} with MAC-Key {_macHandler?.Key.FirstOrDefault()} and ENC-Key {_encryption?.Key.FirstOrDefault()}\nData: {Encoding.ASCII.GetString(data)}");
         }

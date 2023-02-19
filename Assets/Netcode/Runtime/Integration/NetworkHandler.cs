@@ -38,6 +38,9 @@ namespace Netcode.Runtime.Integration
         public bool IsHost { get => _isHost; private set => _isHost = value; }
         [SerializeField] private bool _isHost;
 
+        public uint? ClientId { get => clientId; private set => clientId = value; }
+        [SerializeField] private uint? clientId;
+
         public bool IsStarted { get => _started; private set => _started = value; }
         [SerializeField] private bool _started;
 
@@ -48,6 +51,9 @@ namespace Netcode.Runtime.Integration
 
         // Events
         public Action<NetworkIdentity> OnPlayerSpawn;
+
+        // Utils
+        public IDataSerializer Serializer { get; private set; }
 
         private void Awake()
         {
@@ -61,7 +67,7 @@ namespace Netcode.Runtime.Integration
 
             // Add player prefab to registry
             _objectRegistry ??= new();
-            if(_playerPrefab && !_objectRegistry.Contains(_playerPrefab))
+            if (_playerPrefab && !_objectRegistry.Contains(_playerPrefab))
             {
                 _objectRegistry.Add(_playerPrefab);
             }
@@ -70,8 +76,9 @@ namespace Netcode.Runtime.Integration
             DontDestroyOnLoad(this);
 
             // Setup protocol
-            IMessageSerializer messageSerializer = new MessagePackMessageSerializer();
-            IMessageProtocolHandler protocolHandler = new MessageProtocolHandler(messageSerializer); ;
+            Serializer = new MessagePackDataSerializer();
+            IMessageSerializer messageSerializer = new DefaultMessageSerializer(Serializer);
+            IMessageProtocolHandler protocolHandler = new MessageProtocolHandler(messageSerializer);
             ILoggerFactory loggerFactory = new UnityLoggerFactory(_logLevel);
 
             // Setup server
@@ -88,8 +95,8 @@ namespace Netcode.Runtime.Integration
                     // Instantiate player object
                     NetworkIdentity playerObject = InstantiateNetworkObject(_playerPrefab, Vector3.zero, Quaternion.identity, $"Player_{args.Client.ClientId}");
                     playerObject.IsPlayer = true;
-                    playerObject.ClientId = args.Client.ClientId;
-                    _playerObjects.Add(playerObject.ClientId, playerObject);
+                    playerObject.OwnerClientId = args.Client.ClientId;
+                    _playerObjects.Add(playerObject.OwnerClientId, playerObject);
 
                     OnPlayerSpawn?.Invoke(playerObject);
                 });
@@ -107,9 +114,36 @@ namespace Netcode.Runtime.Integration
                 });
             };
 
+            _server.OnServerMessageReceive += NetworkVariableSyncServer;
+
+            _client.OnReceive += NetworkVariableSyncClient;
             _client.OnReceive += InstantiateNetworkObjectClientCallback;
             _client.OnReceive += DestroyNetworkObjectClientCallback;
             _client.OnDisconnect += ReloadSceneOnClientDisconnect;
+
+            _client.OnConnect += (id) => { ClientId = id; };
+            _client.OnDisconnect += (id) => { ClientId = null; };
+        }
+
+        private void NetworkVariableSyncClient(object sender, NetworkMessageRecieveArgs e)
+        {
+            if (e.Message is SyncNetworkVariableMessage msg)
+            {
+                NetworkIdentity.FindByGuid(msg.NetworkIdentity).SetNetworkVariableFromServerOnClient(msg);
+            }
+        }
+
+        private void NetworkVariableSyncServer(object sender, ServerMessageReceiveEventArgs e)
+        {
+            if(e.Message is SyncNetworkVariableMessage msg)
+            {
+                var nedId = NetworkIdentity.FindByGuid(msg.NetworkIdentity);
+
+                UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                {
+                    ChannelHandler.Instance.DistributeMessage(nedId, msg, ChannelType.Environment);
+                });
+            }
         }
 
         private void DestroyNetworkObjectClientCallback(object sender, NetworkMessageRecieveArgs e)
@@ -118,7 +152,7 @@ namespace Netcode.Runtime.Integration
             {
                 NetworkIdentity netId = NetworkIdentity.FindByGuid(msg.Identity);
 
-                if(netId != null)
+                if (netId != null)
                 {
                     Destroy(netId.gameObject);
                 }
@@ -133,7 +167,7 @@ namespace Netcode.Runtime.Integration
 
         private void InstantiateNetworkObjectClientCallback(object sender, NetworkMessageRecieveArgs e)
         {
-            if(e.Message is InstantiateNetworkObjectMessage msg)
+            if (e.Message is InstantiateNetworkObjectMessage msg)
             {
                 NetworkIdentity networkIdentity = null;
 
@@ -155,7 +189,6 @@ namespace Netcode.Runtime.Integration
                     // Set the NetworkIdentity
                     networkIdentity = networkObject.GetComponent<NetworkIdentity>();
                     networkIdentity.Guid = msg.NetworkIdentityGuid;
-                    networkIdentity.PrefabId = msg.PrefabId;
                 }
                 else if (IsHost)
                 {
@@ -163,20 +196,19 @@ namespace Netcode.Runtime.Integration
                     networkIdentity = NetworkIdentity.FindByGuid(msg.NetworkIdentityGuid);
                 }
 
+                networkIdentity.PrefabId = msg.PrefabId;
                 networkIdentity.name = msg.ObjectName;
 
                 // Get object with prefab id
-                if (msg.ClientId.HasValue)
+                if (msg.OwnerClientId.HasValue)
                 {
                     // Is local player
-                    if(_client.ClientId == msg.ClientId.Value)
+                    if (_client.ClientId == msg.OwnerClientId.Value && msg.IsPlayer)
                     {
                         networkIdentity.IsLocalPlayer = true;
                     }
-
-                    networkIdentity.ClientId = msg.ClientId.Value;
-                    networkIdentity.IsPlayer = true;
-                    networkIdentity.PrefabId = msg.PrefabId;
+                    networkIdentity.OwnerClientId = msg.OwnerClientId.Value;
+                    networkIdentity.IsPlayer = msg.IsPlayer;
                 }
             }
         }
@@ -275,7 +307,7 @@ namespace Netcode.Runtime.Integration
             _client.Dispose();
         }
 
-        public void Send<T>(T message, uint clientId) where T : NetworkMessage
+        public void SendTcp<T>(T message, uint clientId) where T : NetworkMessage
         {
             if (IsClient)
             {
@@ -284,6 +316,18 @@ namespace Netcode.Runtime.Integration
             else if (IsServer || IsHost)
             {
                 _server.Clients.Find(c => c.ClientId == clientId).SendTcp(message);
+            }
+        }
+
+        public void SendUdp<T>(T message, uint clientId) where T : NetworkMessage
+        {
+            if (IsClient)
+            {
+                _client.SendUdp(message);
+            }
+            else if (IsServer || IsHost)
+            {
+                _server.Clients.Find(c => c.ClientId == clientId).SendUdp(message);
             }
         }
     }

@@ -87,7 +87,7 @@ namespace Netcode.Runtime.Communication.Client
                 encryptedKey,
                 encryptedMACKey);
 
-            await SendUdpAsync(new RegisterUdpMessage(ClientId));
+            SendUdp(new RegisterUdpMessage(ClientId));
 
             SendTcp(answer);
 

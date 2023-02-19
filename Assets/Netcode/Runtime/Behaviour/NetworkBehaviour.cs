@@ -9,12 +9,14 @@ using UnityEngine;
 namespace Netcode.Behaviour
 {
     [RequireComponent(typeof(NetworkIdentity))]
+    [DisallowMultipleComponent]
     public abstract class NetworkBehaviour : MonoBehaviour
     {
         // Helper properties
         public bool IsClient { get => NetworkHandler.Instance.IsClient; }
         public bool IsServer { get => NetworkHandler.Instance.IsServer; }
         public bool IsHost { get => NetworkHandler.Instance.IsHost; }
+        public uint? LocalClientId { get => NetworkHandler.Instance.ClientId; }
 
         public NetworkIdentity Identity { get; private set; }
 
@@ -26,21 +28,14 @@ namespace Netcode.Behaviour
             _networkStarted = false;
         }
 
-        public void Start()
-        {
-            if (IsClient) 
-            {
-                _networkStarted = true;
-            }
-        }
-
         private void Update()
         {
-            if (Identity.Instantiated)
+            if (Identity.IsSpawned)
             {
                 if (!_networkStarted)
                 {
                     NetworkStart();
+                    _networkStarted = true;
                 }
                 else
                 {
@@ -51,7 +46,7 @@ namespace Netcode.Behaviour
 
         private void FixedUpdate()
         {
-            if(Identity.Instantiated && _networkStarted)
+            if(Identity.IsSpawned && _networkStarted)
             {
                 NetworkFixedUpdate();
             }
@@ -59,7 +54,7 @@ namespace Netcode.Behaviour
 
         private void LateUpdate()
         {
-            if(Identity.Instantiated && _networkStarted)
+            if(Identity.IsSpawned && _networkStarted)
             {
                 NetworkLateUpdate();
             }
