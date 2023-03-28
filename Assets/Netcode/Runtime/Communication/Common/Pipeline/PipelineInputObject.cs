@@ -22,12 +22,13 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
 
     public struct ReadOnlyByteBuffer
     {
-        private readonly NativeArray<byte> _data;
+        private readonly byte[] _data;
         private int _position;
 
         public ReadOnlyByteBuffer(byte[] data)
         {
-            _data = new(data, Allocator.Temp);
+            _data = new byte[data.Length];
+            data.CopyTo(_data, 0);
             _position = 0;
         }
 
@@ -45,7 +46,7 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
 
         public byte[] ToArrayFull()
         {
-            return _data.ToArray();
+            return _data;
         }
 
         private byte[] GetRange(int position, int amount)

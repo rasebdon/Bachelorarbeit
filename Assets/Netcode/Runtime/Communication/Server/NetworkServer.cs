@@ -191,7 +191,7 @@ namespace Netcode.Runtime.Communication.Server
             {
                 if (!_stopped)
                 {
-                    _logger.LogError(ex);
+                    _logger.LogError("", ex);
                 }
             }
             catch (Exception ex)

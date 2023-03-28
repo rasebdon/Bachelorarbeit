@@ -1,4 +1,5 @@
 ﻿using Netcode.Runtime.Communication.Common.Logging;
+using System;
 using UnityEngine;
 
 namespace Netcode.Runtime.Integration
@@ -44,7 +45,7 @@ namespace Netcode.Runtime.Integration
             Debug.LogWarning($"[{_objectName}][Warning]{message}");
         }
 
-        public void LogError(object message)
+        public void LogError(object message, Exception ex)
         {
             if (_logLevel > LogLevel.Error)
             {
@@ -52,9 +53,10 @@ namespace Netcode.Runtime.Integration
             }
 
             Debug.LogError($"[{_objectName}][Error]{message}");
+            Debug.LogException(ex);
         }
 
-        public void LogFatal(object message)
+        public void LogFatal(object message, Exception ex)
         {
             if (_logLevel > LogLevel.Fatal)
             {
@@ -62,6 +64,17 @@ namespace Netcode.Runtime.Integration
             }
 
             Debug.LogError($"[{_objectName}][Fatal]{message}");
+            Debug.LogException(ex);
+        }
+
+        public void LogError(Exception ex)
+        {
+            LogError("", ex);
+        }
+
+        public void LogFatal(Exception ex)
+        {
+            LogFatal("", ex);
         }
     }
 }

@@ -538,6 +538,8 @@ MonoBehaviour:
   _maxClients: 10
   _logLevel: 0
   _menuSceneBuildIndex: 0
+  _serverTickRate: 60
+  _clientTickRate: 60
   _isServer: 0
   _isClient: 0
   _isHost: 0

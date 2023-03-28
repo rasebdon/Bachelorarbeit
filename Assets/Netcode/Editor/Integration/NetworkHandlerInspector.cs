@@ -91,6 +91,8 @@ namespace Netcode.Editor.Integration
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_tcpPort"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_udpPort"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_maxClients"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_serverTickRate"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_clientTickRate"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_logLevel"));
 
             NetcodeGUI.DrawHorizontalGUILine();

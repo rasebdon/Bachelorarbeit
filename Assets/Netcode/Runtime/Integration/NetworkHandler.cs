@@ -28,6 +28,8 @@ namespace Netcode.Runtime.Integration
         [SerializeField] private ushort _maxClients = 10;
         [SerializeField] private LogLevel _logLevel = LogLevel.Error;
         [SerializeField] private int _menuSceneBuildIndex;
+        [SerializeField] private int _serverTickRate;
+        [SerializeField] private int _clientTickRate;
 
         // Controls
         public bool IsServer { get => _isServer; private set => _isServer = value; }
@@ -223,6 +225,7 @@ namespace Netcode.Runtime.Integration
             IsStarted = true;
 
             _server.Start();
+            InvokeRepeating(nameof(ServerTick), 0, 1f / _serverTickRate);
         }
 
         public async void StartClient()
@@ -236,6 +239,7 @@ namespace Netcode.Runtime.Integration
             IsClient = true;
             IsStarted = true;
 
+            _client.OnConnect += (uint id) => InvokeRepeating(nameof(ClientTick), 0, 1f / _clientTickRate);
             await _client.Connect(_hostname, _tcpPort, _udpPort);
         }
 
@@ -251,8 +255,21 @@ namespace Netcode.Runtime.Integration
             IsStarted = true;
 
             _server.Start();
+            InvokeRepeating(nameof(ServerTick), 0, 1f / _serverTickRate);
+            _client.OnConnect += (uint id) => InvokeRepeating(nameof(ClientTick), 0, 1f / _clientTickRate);
             await _client.Connect("127.0.0.1", _tcpPort, _udpPort);
         }
+
+        private void ServerTick()
+        {
+            _server.OnTick();
+        }
+
+        private void ClientTick()
+        {
+            _client.OnTick();
+        }
+
         public NetworkIdentity InstantiateNetworkObject(GameObject obj, Vector3 position, Quaternion rotation)
         {
             return InstantiateNetworkObject(obj, position, rotation, obj.name);

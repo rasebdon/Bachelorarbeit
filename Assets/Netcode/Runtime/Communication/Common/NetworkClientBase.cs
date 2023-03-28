@@ -104,12 +104,12 @@ namespace Netcode.Runtime.Communication.Common
             {
                 if (!Disposed)
                 {
-                    _logger.LogError($"Exception occurred in {nameof(BeginReceiveTcpAsync)}: {ex}");
+                    _logger.LogError($"Exception occurred in {nameof(BeginReceiveTcpAsync)}", ex);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Exception occurred in {nameof(BeginReceiveTcpAsync)}: {ex}");
+                _logger.LogError($"Exception occurred in {nameof(BeginReceiveTcpAsync)}", ex);
             }
         }
 
@@ -124,12 +124,12 @@ namespace Netcode.Runtime.Communication.Common
             {
                 if (!Disposed)
                 {
-                    _logger.LogError($"Exception occurred in {nameof(ReceiveDatagramAsync)}: {ex}");
+                    _logger.LogError($"Exception occurred in {nameof(ReceiveDatagramAsync)}", ex);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Exception occurred in {nameof(ReceiveDatagramAsync)}: {ex}");
+                _logger.LogError($"Exception occurred in {nameof(ReceiveDatagramAsync)}", ex);
             }
         }
 
@@ -168,7 +168,7 @@ namespace Netcode.Runtime.Communication.Common
                     return;
                 }
 
-                _logger.LogError($"Fatal exception occurred in {nameof(ReceiveMessage)}: {ex}");
+                _logger.LogError($"Fatal exception occurred in {nameof(ReceiveMessage)}", ex);
             }
         }
 
@@ -186,27 +186,36 @@ namespace Netcode.Runtime.Communication.Common
 
         public void OnTick()
         {
-            lock (_tcpWriteLock)
+            if(TcpMessageQueue.Count > 0 && _tcpClient.Connected)
             {
-                PipelineOutputObject output = new()
+                lock (_tcpWriteLock)
                 {
-                    Messages = TcpMessageQueue.ToArray(),
-                    OutputData = new(),
-                };
-                _tcpClient.GetStream().Write(_pipeline.RunPipeline(output).OutputData.ToArray());
+                    PipelineOutputObject output = new()
+                    {
+                        Messages = TcpMessageQueue.ToArray(),
+                        OutputData = new(),
+                    };
+                    _tcpClient.GetStream().Write(_pipeline.RunPipeline(output).OutputData.ToArray());
+                }
+                TcpMessageQueue.Clear();
             }
-
-            lock (_udpWriteLock)
+            
+            if(UdpMessageQueue.Count > 0 && UdpIsConfigured)
             {
-                PipelineOutputObject output = new()
+                lock (_udpWriteLock)
                 {
-                    Messages = UdpMessageQueue.ToArray(),
-                    OutputData = new(),
-                };
-                output = _pipeline.RunPipeline(output);
-                var datagramm = output.OutputData.ToArray();
-                _udpClient.Send(datagramm, datagramm.Length);
+                    PipelineOutputObject output = new()
+                    {
+                        Messages = UdpMessageQueue.ToArray(),
+                        OutputData = new(),
+                    };
+                    output = _pipeline.RunPipeline(output);
+                    var datagramm = output.OutputData.ToArray();
+                    _udpClient.Send(datagramm, datagramm.Length, UdpEndPoint);
+                }
+                UdpMessageQueue.Clear();
             }
+            
 
             ExecuteAfterTickOnce?.Invoke();
             ExecuteAfterTickOnce = null;
