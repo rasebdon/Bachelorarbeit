@@ -36,6 +36,11 @@ namespace Netcode.Runtime.Communication.Common.Serialization
             return MessagePackSerializer.Serialize(obj, _options);
         }
 
+        public byte[] Serialize(object obj, Type type)
+        {
+            return MessagePackSerializer.Serialize(type, obj, _options);
+        }
+
         public object Deserialize(byte[] data, Type messageType)
         {
             return MessagePackSerializer.Deserialize(messageType, data, _options);

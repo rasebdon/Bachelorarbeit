@@ -12,25 +12,23 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
     public interface IPipeline
     {
         public PipelineOutputObject RunPipeline(PipelineOutputObject output);
-        public PipelineInputObject RunPipeline(PipelineInputObject input);
+        public Task<PipelineInputObject> RunPipeline(PipelineInputObject input);
         IPipeline AddStepBefore(IPipelineStep step, IEnumerable<Type> insertBefore);
         IPipeline AddStepAfter(IPipelineStep step, IEnumerable<Type> insertAfter);
         IPipeline AddStepFirst(IPipelineStep step);
         IPipeline AddStepLast(IPipelineStep step);
+        IPipeline AddEncryption(IEncryption encryption);
+        IPipeline AddMAC(IMACHandler macHandler);
     }
 
     public class Pipeline : IPipeline
     {
-        public static IPipeline Default => new Pipeline()
-            .AddStepLast(new SerializeMessagesStep(new DefaultMessageSerializer(new MessagePackDataSerializer())))
-            .AddStepLast(new AddBatchMessageHeaderStep());
-
         public IPipeline AddEncryption(IEncryption encryption)
         {
             return AddStepBefore(new EncryptMessageStep(encryption),
                 new Type[]
                 {
-                    typeof(AddBatchMessageHeaderStep),
+                    typeof(ReadWriteStreamStep),
                     typeof(AddMACToMessageStep)
                 });
         }
@@ -40,7 +38,7 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
             return AddStepBefore(new AddMACToMessageStep(macHandler), 
                 new Type[]
                 {
-                    typeof(AddBatchMessageHeaderStep),
+                    typeof(ReadWriteStreamStep),
                 });
         }
 
@@ -90,15 +88,21 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
             return this;
         }
 
-        public PipelineInputObject RunPipeline(PipelineInputObject input)
+        public async Task<PipelineInputObject> RunPipeline(PipelineInputObject input)
         {
-            _steps.ForEach(step => input = step.Apply(input).Result);
+            foreach (var step in Enumerable.Reverse(_steps))
+            {
+                input = await step.Apply(input);
+            }
             return input;
         }
 
         public PipelineOutputObject RunPipeline(PipelineOutputObject output)
         {
-            Enumerable.Reverse(_steps).ToList().ForEach(step => output = step.Apply(output).Result);
+            foreach (var step in _steps)
+            {
+                output = step.Apply(output);
+            }
             return output;
         }
     }

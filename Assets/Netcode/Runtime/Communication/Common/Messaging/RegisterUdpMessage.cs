@@ -2,11 +2,8 @@
 {
     public class RegisterUdpMessage : NetworkMessage
     {
-        public RegisterUdpMessage(uint clientId)
+        public RegisterUdpMessage()
         {
-            ClientId = clientId;
         }
-
-        public uint ClientId { get; set; }
     }
 }

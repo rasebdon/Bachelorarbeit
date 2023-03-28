@@ -1,9 +1,6 @@
 ﻿using Netcode.Runtime.Communication.Common.Serialization;
 using System;
-using System.IO;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
-using Unity.VisualScripting.FullSerializer;
 
 namespace Netcode.Runtime.Communication.Common.Pipeline
 {
@@ -16,33 +13,30 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
             _messageSerializer = serializer;
         }
 
-        public async Task<PipelineOutputObject> Apply(PipelineOutputObject input)
+        public PipelineOutputObject Apply(PipelineOutputObject output)
         {
-            foreach (var message in input.Messages)
+            foreach (var message in output.Messages)
             {
                 var serializedMessage = _messageSerializer.Serialize(message);
-                await input.OutputData.WriteAsync(BitConverter.GetBytes(serializedMessage.Length));
-                await input.OutputData.WriteAsync(BitConverter.GetBytes(_messageSerializer.GetMessageTypeId(message.GetType())));
-                await input.OutputData.WriteAsync(serializedMessage);
+                output.OutputData.AddRange(BitConverter.GetBytes(_messageSerializer.GetMessageTypeId(message.GetType())));
+                output.OutputData.AddRange(BitConverter.GetBytes(serializedMessage.Length));
+                output.OutputData.AddRange(serializedMessage);
             }
 
-            return input;
+            return output;
         }
 
         public async Task<PipelineInputObject> Apply(PipelineInputObject input)
         {
             for (int i = 0; i < input.Messages.Length; i++)
             {
-                byte[] typeBuffer = new byte[2];
-                await input.InputData.ReadAsync(typeBuffer);
+                byte[] typeBuffer = input.InputBuffer.Consume(2);
                 Type messageType = _messageSerializer.GetMessageType(BitConverter.ToInt16(typeBuffer, 0));
 
-                byte[] dataSizeBuffer = new byte[4];
-                await input.InputData.ReadAsync(dataSizeBuffer);
+                byte[] dataSizeBuffer = input.InputBuffer.Consume(4);
                 int dataSize = BitConverter.ToInt32(dataSizeBuffer, 0);
 
-                byte[] messageData = new byte[dataSize];
-                await input.InputData.ReadAsync(messageData);
+                byte[] messageData = input.InputBuffer.Consume(dataSize);
 
                 input.Messages[i] = _messageSerializer.Deserialize(messageData, messageType);
             }

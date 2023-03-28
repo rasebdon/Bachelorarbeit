@@ -1,6 +1,7 @@
 ﻿using Netcode.Runtime.Communication.Common;
 using Netcode.Runtime.Communication.Common.Logging;
 using Netcode.Runtime.Communication.Common.Messaging;
+using Netcode.Runtime.Communication.Common.Pipeline;
 using Netcode.Runtime.Communication.Common.Security;
 using Netcode.Runtime.Communication.Common.Serialization;
 using System;
@@ -55,11 +56,6 @@ namespace Netcode.Runtime.Communication.Server
         private UdpClient _udpClient;
         private IPEndPoint _udpEndpoint;
 
-        /// <summary>
-        /// The serialzer that is used for serialization of network messages
-        /// </summary>
-        private readonly IMessageProtocolHandler _messageProtocolHandler;
-
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger<NetworkServer> _logger;
 
@@ -71,7 +67,6 @@ namespace Netcode.Runtime.Communication.Server
             ushort tcpPort,
             ushort udpPort,
             ushort maxClients,
-            IMessageProtocolHandler protocolHandler,
             ILoggerFactory loggerFactory)
         {
             // Setup properties
@@ -83,7 +78,6 @@ namespace Netcode.Runtime.Communication.Server
             _nextClientId = 0;
             _stopped = true;
 
-            _messageProtocolHandler = protocolHandler;
             _asymmetricEncryption = new RSAEncryption();
 
             _loggerFactory = loggerFactory;
@@ -118,14 +112,25 @@ namespace Netcode.Runtime.Communication.Server
             }
         }
 
-        private async void OnTcpConnect(IAsyncResult result)
+        public void OnTick()
+        {
+            foreach (var client in Clients)
+            {
+                client.OnTick();
+            }
+        }
+
+        private void OnTcpConnect(IAsyncResult result)
         {
             try
             {
                 // Accept the client
                 TcpClient tcpClient = _tcpServer.EndAcceptTcpClient(result);
-                NetworkServerClient client = new(NextClientId, tcpClient, 
-                    _udpClient, _messageProtocolHandler, _asymmetricEncryption,
+                NetworkServerClient client = new(
+                    NextClientId, 
+                    tcpClient, 
+                    _udpClient,
+                    _asymmetricEncryption,
                     _loggerFactory.CreateLogger<NetworkServerClient>());
 
                 _logger.LogInfo("Incoming TCP client connection");
@@ -195,7 +200,7 @@ namespace Netcode.Runtime.Communication.Server
             }
         }
 
-        private async void OnUdpReceive(IAsyncResult result)
+        private void OnUdpReceive(IAsyncResult result)
         {
             try
             {
@@ -207,56 +212,19 @@ namespace Netcode.Runtime.Communication.Server
 
                 if (data != null && data.Length > 0)
                 {
-                    // Find client with IPEndPoint of receiver
                     NetworkServerClient client = Clients.Find(c => c.UdpIsConfigured && c.UdpEndPoint.Address == remoteEp.Address);
 
                     if (client == null)
                     {
-                        _logger.LogInfo($"Could not find client with udp address {remoteEp}, checking for RegisterUdpMessage...");
+                        _logger.LogInfo($"Could not find client with udp address {remoteEp}, registering client...");
 
-                        // Check if the message that was received was a RegisterUdpMessage
-                        NetworkMessage message = await _messageProtocolHandler.DeserializeMessageAsync(new MemoryStream(data));
-
-                        if (message is RegisterUdpMessage msg)
-                        {
-                            client = Clients.Find(c => c.ClientId == msg.ClientId);
-
-                            if (client == null)
-                            {
-                                _logger.LogError($"Could not find any client with client id {msg.ClientId} to register udp with!");
-                                _udpClient.BeginReceive(OnUdpReceive, null);
-                                return;
-                            }
-
-                            if (client.UdpIsConfigured)
-                            {
-                                _logger.LogError($"Cannot reconfigure UDP on client {msg.ClientId}!");
-                                _udpClient.BeginReceive(OnUdpReceive, null);
-                                return;
-                            }
-
-                            // Set the client endpoint to the received message endpoint
-                            client.UdpEndPoint = remoteEp;
-                            client.UdpIsConfigured = true;
-
-                            _logger.LogInfo($"Client {client.ClientId} registered UDP with endpoint {remoteEp}");
-                        }
-                        // Throw away message (No client + incorrect register udp message)
-                        else
-                        {
-                            _logger.LogError($"Incorrect message received (message should have been RegisterUdpMessage)!");
-
-                            // Begin to receive datagrams again
-                            _udpClient.BeginReceive(OnUdpReceive, null);
-                            return;
-                        }
+                        client.UdpEndPoint = remoteEp;
+                        client.UdpIsConfigured = true;
                     }
 
-                    // Call the on receive method for datagrams on the server client
                     client.ReceiveDatagramAsync(data);
                 }
 
-                // Begin to receive datagrams again
                 _udpClient.BeginReceive(OnUdpReceive, null);
             }
             catch(ObjectDisposedException ex)

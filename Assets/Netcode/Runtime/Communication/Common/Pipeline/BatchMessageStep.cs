@@ -7,17 +7,16 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
 {
     public class AddBatchMessageHeaderStep : IPipelineStep
     {
-        public async Task<PipelineOutputObject> Apply(PipelineOutputObject input)
+        public PipelineOutputObject Apply(PipelineOutputObject output)
         {
-            await input.OutputData.WriteAsync(BitConverter.GetBytes(input.Messages.Count()));
-            return input;
+            output.OutputData.InsertRange(0, BitConverter.GetBytes((short)output.Messages.Count()));
+            return output;
         }
 
-        public async Task<PipelineOutputObject> Revert(PipelineOutputObject input)
+        public async Task<PipelineInputObject> Apply(PipelineInputObject input)
         {
-            byte[] buffer = new byte[2];
-            await input.OutputData.ReadAsync(buffer, 0, 2);
-            input.Messages = new NetworkMessage[BitConverter.ToInt32(buffer)];
+            byte[] messageCount = input.InputBuffer.Consume(2);
+            input.Messages = new NetworkMessage[BitConverter.ToInt16(messageCount)];
             return input;
         }
     }

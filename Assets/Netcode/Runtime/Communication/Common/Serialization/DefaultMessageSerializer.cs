@@ -55,6 +55,11 @@ namespace Netcode.Runtime.Communication.Common.Serialization
         {
             return _serializer.Serialize(message);
         }
+
+        public byte[] Serialize(NetworkMessage message)
+        {
+            return _serializer.Serialize(message, message.GetType());
+        }
     }
 
     public class Map<T1, T2> : IEnumerable<KeyValuePair<T1, T2>>

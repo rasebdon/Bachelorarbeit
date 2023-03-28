@@ -13,14 +13,12 @@ namespace Netcode.Runtime.Communication.Client
     public class NetworkClient : NetworkClientBase<NetworkClient>
     {
         public NetworkClient(
-            IMessageProtocolHandler protocolHandler,
             ILogger<NetworkClient> logger) 
             : 
             base(   
                 0,
                 new TcpClient(), 
                 new UdpClient(AddressFamily.InterNetwork),
-                protocolHandler,
                 new RSAEncryption(),
                 logger)
         { 
@@ -60,7 +58,7 @@ namespace Netcode.Runtime.Communication.Client
 
         #region OnReceive Message Behaviours
 
-        private async void OnConnectionInfoMessageReceive(object sender, NetworkMessageRecieveArgs args)
+        private void OnConnectionInfoMessageReceive(object sender, NetworkMessageRecieveArgs args)
         {
             if (args.Message is not ConnectionInfoMessage msg)
             {
@@ -71,15 +69,15 @@ namespace Netcode.Runtime.Communication.Client
             ClientId = msg.ClientId;
 
             // Initialize encryption for communication
-            _encryption = new AES256Encryption();
+            var encryption = new AES256Encryption();
 
             // Initialize MAC for communication
-            _macHandler = new HMAC256Handler();
+            var macHandler = new HMAC256Handler();
 
             // Encrypt for transportation with server public key
-            byte[] encryptedIV = _asymmetricEncryption.Encrypt(_encryption.IV, msg.ServerPublicKey);
-            byte[] encryptedKey = _asymmetricEncryption.Encrypt(_encryption.Key, msg.ServerPublicKey);
-            byte[] encryptedMACKey = _asymmetricEncryption.Encrypt(_macHandler.Key, msg.ServerPublicKey);
+            byte[] encryptedIV = _asymmetricEncryption.Encrypt(encryption.IV, msg.ServerPublicKey);
+            byte[] encryptedKey = _asymmetricEncryption.Encrypt(encryption.Key, msg.ServerPublicKey);
+            byte[] encryptedMACKey = _asymmetricEncryption.Encrypt(macHandler.Key, msg.ServerPublicKey);
 
             // Create information message
             EncryptionInfoMessage answer = new(
@@ -87,12 +85,14 @@ namespace Netcode.Runtime.Communication.Client
                 encryptedKey,
                 encryptedMACKey);
 
-            SendUdp(new RegisterUdpMessage(ClientId));
-
+            SendUdp(new RegisterUdpMessage());
             SendTcp(answer);
 
-            _encryption.IsConfigured = true;
-            _macHandler.IsConfigured = true;
+            ExecuteAfterTickOnce += () =>
+            {
+                _pipeline.AddEncryption(encryption);
+                _pipeline.AddMAC(macHandler);
+            };
 
             OnConnect?.Invoke(ClientId);
         }

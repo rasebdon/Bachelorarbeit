@@ -14,18 +14,22 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
             _macHandler = macHandler;
         }
 
-        public async Task<PipelineOutputObject> Apply(PipelineOutputObject output)
+        public PipelineOutputObject Apply(PipelineOutputObject output)
         {
-            await output.OutputData.WriteAsync(_macHandler.GenerateMAC(output.OutputData.ToArray()));
+            var mac = _macHandler.GenerateMAC(output.OutputData.ToArray());
+            output.OutputData.InsertRange(0, BitConverter.GetBytes((short)mac.Length));
+            output.OutputData.InsertRange(2, mac);
             return output;
         }
 
         public async Task<PipelineInputObject> Apply(PipelineInputObject input)
         {
-            var macData = new byte[32];
-            await input.InputData.ReadAsync(macData);
+            var macLengthData = input.InputBuffer.Consume(2);
+            var macLength = BitConverter.ToInt16(macLengthData);
 
-            if(!_macHandler.GenerateMAC(input.InputData.ToArray()).SequenceEqual(macData))
+            var mac = input.InputBuffer.Consume(macLength);
+
+            if (!_macHandler.GenerateMAC(input.InputBuffer.ToArray()).SequenceEqual(mac))
             {
                 throw new Exception("Invalid MAC, data may have been tampered with!");
             }

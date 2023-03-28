@@ -1,14 +1,13 @@
 ﻿using Netcode.Behaviour;
 using Netcode.Channeling;
 using Netcode.Runtime.Communication.Client;
-using Netcode.Runtime.Communication.Common;
 using Netcode.Runtime.Communication.Common.Logging;
 using Netcode.Runtime.Communication.Common.Messaging;
+using Netcode.Runtime.Communication.Common.Pipeline;
 using Netcode.Runtime.Communication.Common.Serialization;
 using Netcode.Runtime.Communication.Server;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -75,17 +74,16 @@ namespace Netcode.Runtime.Integration
 
             DontDestroyOnLoad(this);
 
-            // Setup protocol
+            // Setup pipeline
             Serializer = new MessagePackDataSerializer();
-            IMessageSerializer messageSerializer = new DefaultMessageSerializer(Serializer);
-            IMessageProtocolHandler protocolHandler = new MessageProtocolHandler(messageSerializer);
+            IPipeline pipeline = PipelineFactory.CreatePipeline(); 
             ILoggerFactory loggerFactory = new UnityLoggerFactory(_logLevel);
 
             // Setup server
-            _server = new(_tcpPort, _udpPort, _maxClients, protocolHandler, loggerFactory);
+            _server = new(_tcpPort, _udpPort, _maxClients, loggerFactory);
 
             // Setup client
-            _client = new(protocolHandler, loggerFactory.CreateLogger<NetworkClient>());
+            _client = new(loggerFactory.CreateLogger<NetworkClient>());
 
             // Setup channel handler
             _server.OnServerClientConnect += (obj, args) =>

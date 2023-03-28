@@ -7,10 +7,9 @@ using System.IO;
 using System.Net.Sockets;
 using System.Net;
 using System.Threading.Tasks;
-using System.Runtime.InteropServices.ComTypes;
 using Netcode.Runtime.Communication.Common.Exceptions;
-using System.Linq;
-using System.Text;
+using System.Collections.Generic;
+using Netcode.Runtime.Communication.Common.Pipeline;
 
 namespace Netcode.Runtime.Communication.Common
 {
@@ -35,29 +34,30 @@ namespace Netcode.Runtime.Communication.Common
         protected readonly UdpClient _udpClient;
 
         // Message Protocol Variables
-        protected readonly IMessageProtocolHandler _protocolHandler;
+        protected readonly IPipeline _pipeline;
 
         // Asymmetric encryption for initialization
         protected readonly IAsymmetricEncryption _asymmetricEncryption;
 
-        protected IEncryption _encryption;
-        protected IMACHandler _macHandler;
+        private Queue<NetworkMessage> UdpMessageQueue { get; } = new();
+        private Queue<NetworkMessage> TcpMessageQueue { get; } = new();
 
         protected readonly ILogger<T> _logger;
 
         public bool Disposed { get; private set; } = false;
 
+        protected Action ExecuteAfterTickOnce { get; set; }
+
         public NetworkClientBase(
             uint clientId,
             TcpClient client,
             UdpClient udpClient,
-            IMessageProtocolHandler protocolHandler,
             IAsymmetricEncryption asymmetricEncryption,
             ILogger<T> logger)
         {
             ClientId = clientId;
             _asymmetricEncryption = asymmetricEncryption;
-            _protocolHandler = protocolHandler;
+            _pipeline = PipelineFactory.CreatePipeline();
             _tcpClient = client;
             _udpClient = udpClient;
             _logger = logger;
@@ -76,16 +76,7 @@ namespace Netcode.Runtime.Communication.Common
         /// <param name="message"></param>
         public void SendTcp<MessageType>(MessageType message) where MessageType : NetworkMessage
         {
-            // Serialize the network message
-            byte[] data = _protocolHandler.SerializeMessage(message, _macHandler, _encryption);
-
-            lock (_tcpWriteLock)
-            {
-                // Write to the tcp network stream
-                _tcpClient.GetStream().Write(data, 0, data.Length);
-            }
-
-            _logger.LogDetail($"Sending {message.GetType().Name} over TCP to client {ClientId} with MAC-Key {_macHandler?.Key.FirstOrDefault()} and ENC-Key {_encryption?.Key.FirstOrDefault()}\nData: {Encoding.ASCII.GetString(data)}");
+            TcpMessageQueue.Enqueue(message);
         }
 
         private readonly object _udpWriteLock = new();
@@ -96,16 +87,7 @@ namespace Netcode.Runtime.Communication.Common
         /// <returns></returns>
         public void SendUdp<MessageType>(MessageType message) where MessageType : NetworkMessage
         {
-            // Serialize the network message
-            byte[] data = _protocolHandler.SerializeMessage(message, _macHandler, _encryption);
-
-            lock (_udpWriteLock)
-            {
-                // Send datagramm
-                _udpClient.Send(data, data.Length, UdpEndPoint);
-            }
-
-            _logger.LogDetail($"Sending {message.GetType().Name} over UDP to client {ClientId} with MAC-Key {_macHandler?.Key.FirstOrDefault()} and ENC-Key {_encryption?.Key.FirstOrDefault()}\nData: {Encoding.ASCII.GetString(data)}");
+            UdpMessageQueue.Enqueue(message);
         }
 
         public async void BeginReceiveTcpAsync()
@@ -161,13 +143,16 @@ namespace Netcode.Runtime.Communication.Common
         {
             try
             {
-                // Get message from stream
-                NetworkMessage message = await _protocolHandler.DeserializeMessageAsync(stream, _macHandler, _encryption);
+                var input = await _pipeline.RunPipeline(
+                    new PipelineInputObject
+                    {
+                        InputStream = stream,
+                    });
 
-                _logger.LogDetail($"Received message {message.GetType().Name}");
-
-                // Invoke the OnReceive event
-                OnReceive?.Invoke(this, new NetworkMessageRecieveArgs(message));
+                foreach (var message in input.Messages)
+                {
+                    OnReceive?.Invoke(this, new NetworkMessageRecieveArgs(message));
+                }
             }
             catch(Exception ex)
             {
@@ -197,6 +182,34 @@ namespace Netcode.Runtime.Communication.Common
             Disposed = true;
             OnDisconnect?.Invoke(ClientId);
             _tcpClient?.Dispose();
+        }
+
+        public void OnTick()
+        {
+            lock (_tcpWriteLock)
+            {
+                PipelineOutputObject output = new()
+                {
+                    Messages = TcpMessageQueue.ToArray(),
+                    OutputData = new(),
+                };
+                _tcpClient.GetStream().Write(_pipeline.RunPipeline(output).OutputData.ToArray());
+            }
+
+            lock (_udpWriteLock)
+            {
+                PipelineOutputObject output = new()
+                {
+                    Messages = UdpMessageQueue.ToArray(),
+                    OutputData = new(),
+                };
+                output = _pipeline.RunPipeline(output);
+                var datagramm = output.OutputData.ToArray();
+                _udpClient.Send(datagramm, datagramm.Length);
+            }
+
+            ExecuteAfterTickOnce?.Invoke();
+            ExecuteAfterTickOnce = null;
         }
     }
 }

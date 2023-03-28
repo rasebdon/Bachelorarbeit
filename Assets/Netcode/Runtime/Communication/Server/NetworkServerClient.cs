@@ -14,8 +14,8 @@ namespace Netcode.Runtime.Communication.Server
 {
     public class NetworkServerClient : NetworkClientBase<NetworkServerClient>
     {
-        public NetworkServerClient(uint clientId, TcpClient client, UdpClient udpClient, IMessageProtocolHandler protocolHandler, IAsymmetricEncryption asymmetricEncryption, ILogger<NetworkServerClient> logger) 
-            : base(clientId, client, udpClient, protocolHandler, asymmetricEncryption, logger)
+        public NetworkServerClient(uint clientId, TcpClient client, UdpClient udpClient, IAsymmetricEncryption asymmetricEncryption, ILogger<NetworkServerClient> logger) 
+            : base(clientId, client, udpClient, asymmetricEncryption, logger)
         {
             OnReceive += OnEncryptionInfoMessageReceive;
         }
@@ -32,11 +32,8 @@ namespace Netcode.Runtime.Communication.Server
             byte[] symmetricKey = _asymmetricEncryption.Decrypt(msg.SymmetricKey);
             byte[] macKey = _asymmetricEncryption.Decrypt(msg.MACKey);
 
-            _encryption = new AES256Encryption(symmetricIV, symmetricKey);
-            _macHandler = new HMAC256Handler(macKey);
-
-            _encryption.IsConfigured = true;
-            _macHandler.IsConfigured = true;
+            _pipeline.AddEncryption(new AES256Encryption(symmetricIV, symmetricKey));
+            _pipeline.AddMAC(new HMAC256Handler(macKey));
 
             _logger.LogInfo($"Encryption for client {ClientId} configured!");
 

@@ -13,24 +13,17 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
             this._encryption = encryption;
         }
 
-        public async Task<PipelineOutputObject> Apply(PipelineOutputObject input)
+        public PipelineOutputObject Apply(PipelineOutputObject output)
         {
-            var encrypted = _encryption.Encrypt(input.OutputData.ToArray());
-            await input.OutputData.FlushAsync();
-            await input.OutputData.WriteAsync(BitConverter.GetBytes(encrypted.Length));
-            await input.OutputData.WriteAsync(encrypted);
-            return input;
+            var encrypted = _encryption.Encrypt(output.OutputData.ToArray());
+            output.OutputData.Clear();
+            output.OutputData.InsertRange(4, encrypted);
+            return output;
         }
 
         public async Task<PipelineInputObject> Apply(PipelineInputObject input)
         {
-            var dataLength = new byte[4];
-            await input.InputData.ReadAsync(dataLength);
-
-            var data = new byte[BitConverter.ToInt32(dataLength)];
-            await input.InputData.ReadAsync(data);
-            await input.InputData.FlushAsync();
-            await input.InputData.WriteAsync(_encryption.Decrypt(data));
+            input.InputBuffer = new(_encryption.Decrypt(input.InputBuffer.ToArray()));
             return input;
         }
     }

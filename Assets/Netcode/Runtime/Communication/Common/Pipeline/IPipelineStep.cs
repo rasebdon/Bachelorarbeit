@@ -8,7 +8,7 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
 {
     public interface IPipelineStep
     {
-        public Task<PipelineOutputObject> Apply(PipelineOutputObject output);
+        public PipelineOutputObject Apply(PipelineOutputObject output);
         public Task<PipelineInputObject> Apply(PipelineInputObject input);
     }
 }
