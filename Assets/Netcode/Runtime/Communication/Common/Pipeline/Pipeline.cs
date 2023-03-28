@@ -52,7 +52,7 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
                 foreach (var type in insertAfter)
                 {
                     int typeIndex = _steps.FindIndex(s => s.GetType() == type);
-                    if (index <= typeIndex)
+                    if (index <= typeIndex && typeIndex != -1)
                         index = typeIndex + 1;
                 }
             }
@@ -67,7 +67,7 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
                 foreach (var type in insertBefore)
                 {
                     int typeIndex = _steps.FindIndex(s => s.GetType() == type);
-                    if (index > typeIndex)
+                    if (index > typeIndex && typeIndex != -1)
                         index = typeIndex;
                 }
             }

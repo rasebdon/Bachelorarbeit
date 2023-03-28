@@ -17,7 +17,7 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
         {
             var encrypted = _encryption.Encrypt(output.OutputData.ToArray());
             output.OutputData.Clear();
-            output.OutputData.InsertRange(4, encrypted);
+            output.OutputData.AddRange(encrypted);
             return output;
         }
 
