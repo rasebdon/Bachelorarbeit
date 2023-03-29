@@ -5,16 +5,19 @@ using NUnit.Framework;
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 public class PipelineTests
 {
     public IPipeline Pipeline;
     public MemoryStream Stream;
+    public CancellationTokenSource CancellationTokenSource;
 
     [SetUp]
     public void Setup()
     {
-        Pipeline = PipelineFactory.CreatePipeline();
+        CancellationTokenSource = new();
+        Pipeline = PipelineFactory.CreatePipeline(CancellationTokenSource);
         Stream = new();
     }
 

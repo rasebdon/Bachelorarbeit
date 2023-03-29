@@ -11,6 +11,7 @@ using Netcode.Runtime.Communication.Common.Exceptions;
 using System.Collections.Generic;
 using Netcode.Runtime.Communication.Common.Pipeline;
 using System.Collections.Concurrent;
+using System.Threading;
 
 namespace Netcode.Runtime.Communication.Common
 {
@@ -50,6 +51,8 @@ namespace Netcode.Runtime.Communication.Common
 
         public Dictionary<Type, List<Action<NetworkMessage>>> OnMessageSent { get; set; } = new();
 
+        private readonly CancellationTokenSource _cancellationTokenSource = new();
+
         public NetworkClientBase(
             uint clientId,
             TcpClient client,
@@ -60,7 +63,8 @@ namespace Netcode.Runtime.Communication.Common
             OnMessageSent = new();
             ClientId = clientId;
             _asymmetricEncryption = asymmetricEncryption;
-            _pipeline = PipelineFactory.CreatePipeline();
+            _cancellationTokenSource = new();
+            _pipeline = PipelineFactory.CreatePipeline(_cancellationTokenSource);
             _tcpClient = client;
             _udpClient = udpClient;
             _logger = logger;
@@ -150,7 +154,12 @@ namespace Netcode.Runtime.Communication.Common
                         });
 
                 for (int i = 0; i < input.Messages.Length; i++)
-                    MessageQueue_In.Enqueue(input.Messages[i]);
+                {
+                    var message = input.Messages[i];
+                    if (message != null) 
+                        MessageQueue_In.Enqueue(message);
+                }
+                    
             }
             catch(Exception ex)
             {
@@ -175,6 +184,7 @@ namespace Netcode.Runtime.Communication.Common
             if (Disposed)
                 return;
 
+            _cancellationTokenSource.Cancel();
             Disposed = true;
             OnDisconnect?.Invoke(ClientId);
             _tcpClient?.Dispose();

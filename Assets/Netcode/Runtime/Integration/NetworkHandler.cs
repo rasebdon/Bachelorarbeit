@@ -8,6 +8,7 @@ using Netcode.Runtime.Communication.Common.Serialization;
 using Netcode.Runtime.Communication.Server;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -78,7 +79,6 @@ namespace Netcode.Runtime.Integration
 
             // Setup pipeline
             Serializer = new MessagePackDataSerializer();
-            IPipeline pipeline = PipelineFactory.CreatePipeline(); 
             ILoggerFactory loggerFactory = new UnityLoggerFactory(_logLevel);
 
             // Setup server
