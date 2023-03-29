@@ -144,13 +144,14 @@ namespace Netcode.Runtime.Communication.Common
             try
             {
                 var input = await _pipeline.RunPipeline(
-                    new PipelineInputObject
-                    {
-                        InputStream = stream,
-                    });
+                        new PipelineInputObject
+                        {
+                            InputStream = stream,
+                        });
 
                 foreach (var message in input.Messages)
                 {
+                    // TODO: Move into OnTick and add messages here to concurrent queue
                     OnReceive?.Invoke(this, new NetworkMessageRecieveArgs(message));
                 }
             }
@@ -186,20 +187,23 @@ namespace Netcode.Runtime.Communication.Common
 
         public void OnTick()
         {
-            if(TcpMessageQueue.Count > 0 && _tcpClient.Connected)
+            if (_tcpClient.Connected)
             {
-                lock (_tcpWriteLock)
+                if (TcpMessageQueue.Count > 0)
                 {
-                    PipelineOutputObject output = new()
+                    lock (_tcpWriteLock)
                     {
-                        Messages = TcpMessageQueue.ToArray(),
-                        OutputData = new(),
-                    };
-                    _tcpClient.GetStream().Write(_pipeline.RunPipeline(output).OutputData.ToArray());
+                        PipelineOutputObject output = new()
+                        {
+                            Messages = TcpMessageQueue.ToArray(),
+                            OutputData = new(),
+                        };
+                        _tcpClient.GetStream().Write(_pipeline.RunPipeline(output).OutputData.ToArray());
+                    }
+                    TcpMessageQueue.Clear();
                 }
-                TcpMessageQueue.Clear();
             }
-            
+
             if(UdpMessageQueue.Count > 0 && UdpIsConfigured)
             {
                 lock (_udpWriteLock)
@@ -216,7 +220,6 @@ namespace Netcode.Runtime.Communication.Common
                 UdpMessageQueue.Clear();
             }
             
-
             ExecuteAfterTickOnce?.Invoke();
             ExecuteAfterTickOnce = null;
         }

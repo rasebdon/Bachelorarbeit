@@ -90,8 +90,9 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
 
         public async Task<PipelineInputObject> RunPipeline(PipelineInputObject input)
         {
-            foreach (var step in Enumerable.Reverse(_steps))
+            for (int i = 0; i < _steps.Count; i++)
             {
+                var step = _steps[_steps.Count - 1 - i];
                 input = await step.Apply(input);
             }
             return input;

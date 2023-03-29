@@ -239,7 +239,7 @@ namespace Netcode.Runtime.Integration
             IsClient = true;
             IsStarted = true;
 
-            _client.OnConnect += (uint id) => InvokeRepeating(nameof(ClientTick), 0, 1f / _clientTickRate);
+            InvokeRepeating(nameof(ClientTick), 0, 1f / _clientTickRate);
             await _client.Connect(_hostname, _tcpPort, _udpPort);
         }
 
@@ -256,7 +256,7 @@ namespace Netcode.Runtime.Integration
 
             _server.Start();
             InvokeRepeating(nameof(ServerTick), 0, 1f / _serverTickRate);
-            _client.OnConnect += (uint id) => InvokeRepeating(nameof(ClientTick), 0, 1f / _clientTickRate);
+            InvokeRepeating(nameof(ClientTick), 0, 1f / _clientTickRate);
             await _client.Connect("127.0.0.1", _tcpPort, _udpPort);
         }
 
