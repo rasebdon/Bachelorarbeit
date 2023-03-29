@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Netcode.Runtime.Communication.Common.Exceptions;
 using System.Collections.Generic;
 using Netcode.Runtime.Communication.Common.Pipeline;
+using System.Collections.Concurrent;
 
 namespace Netcode.Runtime.Communication.Common
 {
@@ -39,14 +40,15 @@ namespace Netcode.Runtime.Communication.Common
         // Asymmetric encryption for initialization
         protected readonly IAsymmetricEncryption _asymmetricEncryption;
 
-        private Queue<NetworkMessage> UdpMessageQueue { get; } = new();
-        private Queue<NetworkMessage> TcpMessageQueue { get; } = new();
+        private ConcurrentQueue<NetworkMessage> UdpMessageQueue_Out { get; } = new();
+        private ConcurrentQueue<NetworkMessage> TcpMessageQueue_Out { get; } = new();
+        private ConcurrentQueue<NetworkMessage> MessageQueue_In { get; } = new();
 
         protected readonly ILogger<T> _logger;
 
         public bool Disposed { get; private set; } = false;
 
-        protected Action ExecuteAfterTickOnce { get; set; }
+        public Dictionary<Type, List<Action<NetworkMessage>>> OnMessageSent { get; set; } = new();
 
         public NetworkClientBase(
             uint clientId,
@@ -55,6 +57,7 @@ namespace Netcode.Runtime.Communication.Common
             IAsymmetricEncryption asymmetricEncryption,
             ILogger<T> logger)
         {
+            OnMessageSent = new();
             ClientId = clientId;
             _asymmetricEncryption = asymmetricEncryption;
             _pipeline = PipelineFactory.CreatePipeline();
@@ -69,17 +72,16 @@ namespace Netcode.Runtime.Communication.Common
             Dispose();
         }
 
-        private readonly object _tcpWriteLock = new();
         /// <summary>
         /// Sends a network message over the tcp stream of the server-client connection
         /// </summary>
         /// <param name="message"></param>
         public void SendTcp<MessageType>(MessageType message) where MessageType : NetworkMessage
         {
-            TcpMessageQueue.Enqueue(message);
+            lock(_tcpWriteLock)
+                TcpMessageQueue_Out.Enqueue(message);
         }
 
-        private readonly object _udpWriteLock = new();
         /// <summary>
         /// Sends a UDP datagramm with the bytes of the given network message
         /// </summary>
@@ -87,17 +89,16 @@ namespace Netcode.Runtime.Communication.Common
         /// <returns></returns>
         public void SendUdp<MessageType>(MessageType message) where MessageType : NetworkMessage
         {
-            UdpMessageQueue.Enqueue(message);
+            lock (_udpWriteLock)
+                UdpMessageQueue_Out.Enqueue(message);
         }
 
         public async void BeginReceiveTcpAsync()
         {
             try
             {
-                // Receive message over tcp stream
                 await ReceiveMessage(_tcpClient.GetStream());
 
-                // Start receiving next message
                 BeginReceiveTcpAsync();
             }
             catch (ObjectDisposedException ex)
@@ -117,7 +118,6 @@ namespace Netcode.Runtime.Communication.Common
         {
             try
             {
-                // Receive message over datagram (converted to stream for deserialization)
                 await ReceiveMessage(new MemoryStream(data));
             }
             catch (ObjectDisposedException ex)
@@ -149,11 +149,8 @@ namespace Netcode.Runtime.Communication.Common
                             InputStream = stream,
                         });
 
-                foreach (var message in input.Messages)
-                {
-                    // TODO: Move into OnTick and add messages here to concurrent queue
-                    OnReceive?.Invoke(this, new NetworkMessageRecieveArgs(message));
-                }
+                for (int i = 0; i < input.Messages.Length; i++)
+                    MessageQueue_In.Enqueue(input.Messages[i]);
             }
             catch(Exception ex)
             {
@@ -176,52 +173,65 @@ namespace Netcode.Runtime.Communication.Common
         public void Dispose()
         {
             if (Disposed)
-            {
                 return;
-            }
 
             Disposed = true;
             OnDisconnect?.Invoke(ClientId);
             _tcpClient?.Dispose();
         }
 
+        private readonly object _tcpWriteLock = new();
+        private readonly object _udpWriteLock = new();
         public void OnTick()
         {
-            if (_tcpClient.Connected)
+            if (_tcpClient.Connected && TcpMessageQueue_Out.Count > 0)
             {
-                if (TcpMessageQueue.Count > 0)
+                lock (_tcpWriteLock)
                 {
-                    lock (_tcpWriteLock)
+                    PipelineOutputObject output = new()
                     {
-                        PipelineOutputObject output = new()
-                        {
-                            Messages = TcpMessageQueue.ToArray(),
-                            OutputData = new(),
-                        };
-                        _tcpClient.GetStream().Write(_pipeline.RunPipeline(output).OutputData.ToArray());
+                        Messages = TcpMessageQueue_Out.ToArray(),
+                        OutputData = new(),
+                    };
+                    _tcpClient.GetStream().Write(_pipeline.RunPipeline(output).OutputData.ToArray());
+
+                    for (int i = 0; i < output.Messages.Length; i++)
+                    {
+                        var message = output.Messages[i];
+                        if(OnMessageSent.TryGetValue(message.GetType(), out var action) && action != null)
+                            action.ForEach(a => a?.Invoke(message));
                     }
-                    TcpMessageQueue.Clear();
+
+                    TcpMessageQueue_Out.Clear();
                 }
             }
 
-            if(UdpMessageQueue.Count > 0 && UdpIsConfigured)
+            if (UdpMessageQueue_Out.Count > 0 && UdpIsConfigured)
             {
                 lock (_udpWriteLock)
                 {
                     PipelineOutputObject output = new()
                     {
-                        Messages = UdpMessageQueue.ToArray(),
+                        Messages = UdpMessageQueue_Out.ToArray(),
                         OutputData = new(),
                     };
-                    output = _pipeline.RunPipeline(output);
-                    var datagramm = output.OutputData.ToArray();
+                    var datagramm = _pipeline.RunPipeline(output).OutputData.ToArray();
                     _udpClient.Send(datagramm, datagramm.Length, UdpEndPoint);
+
+                    for (int i = 0; i < output.Messages.Length; i++)
+                    {
+                        var message = output.Messages[i];
+                        if (OnMessageSent.TryGetValue(message.GetType(), out var action) && action != null)
+                            action.ForEach(a => a?.Invoke(message));
+                    }
+
+                    UdpMessageQueue_Out.Clear();
                 }
-                UdpMessageQueue.Clear();
             }
-            
-            ExecuteAfterTickOnce?.Invoke();
-            ExecuteAfterTickOnce = null;
+
+            while (!MessageQueue_In.IsEmpty)
+                if(MessageQueue_In.TryDequeue(out var message))
+                    OnReceive?.Invoke(this, new NetworkMessageRecieveArgs(message));
         }
     }
 }

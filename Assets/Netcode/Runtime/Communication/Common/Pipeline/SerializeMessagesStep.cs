@@ -30,14 +30,8 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
         {
             for (int i = 0; i < input.Messages.Length; i++)
             {
-                byte[] typeBuffer = input.InputBuffer.Consume(2);
-                Type messageType = _messageSerializer.GetMessageType(BitConverter.ToInt16(typeBuffer, 0));
-
-                byte[] dataSizeBuffer = input.InputBuffer.Consume(4);
-                int dataSize = BitConverter.ToInt32(dataSizeBuffer, 0);
-
-                byte[] messageData = input.InputBuffer.Consume(dataSize);
-
+                Type messageType = _messageSerializer.GetMessageType(BitConverter.ToInt16(input.InputBuffer.Consume(2), 0));
+                byte[] messageData = input.InputBuffer.Consume(BitConverter.ToInt32(input.InputBuffer.Consume(4), 0));
                 input.Messages[i] = _messageSerializer.Deserialize(messageData, messageType);
             }
 

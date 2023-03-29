@@ -245,6 +245,9 @@ namespace Netcode.Runtime.Communication.Server
         /// </summary>
         public void Stop()
         {
+            if (_stopped)
+                return;
+
             try
             {
                 _stopped = true;
@@ -253,7 +256,10 @@ namespace Netcode.Runtime.Communication.Server
                 NetworkServerClient[] clients = new NetworkServerClient[Clients.Count];
                 Clients.CopyTo(clients);
 
-                clients.ToList().ForEach(c => c?.Dispose());
+                for (int i = 0; i < clients.Length; i++)
+                {
+                    clients[i]?.Dispose();
+                }
 
                 Clients.Clear();
                 _udpClient?.Dispose();
