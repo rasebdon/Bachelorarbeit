@@ -56,7 +56,7 @@ public class ConnectionTests
     [TearDown]
     public void TearDown()
     {
-        _server.Stop();
         _client.Dispose();
+        _server.Dispose();
     }
 }
