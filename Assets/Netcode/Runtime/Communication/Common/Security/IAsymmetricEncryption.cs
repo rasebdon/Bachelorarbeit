@@ -6,7 +6,7 @@
 
         byte[] Encrypt(byte[] data);
         byte[] Encrypt(byte[] data, byte[] publicKey);
-        
+
         byte[] Decrypt(byte[] data);
     }
 }

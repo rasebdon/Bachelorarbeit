@@ -1,7 +1,4 @@
-﻿using JetBrains.Annotations;
-using Netcode.Behaviour;
-using Netcode.Runtime.Behaviour;
-using System;
+﻿using Netcode.Runtime.Behaviour;
 using UnityEngine;
 
 public class NetworkVariableTest : NetworkBehaviour
@@ -35,7 +32,7 @@ public class NetworkVariableTest : NetworkBehaviour
         }
     }
 
-    private void PrintValue(object arg1, object arg2)
+    private void PrintValue(int arg1, int arg2)
     {
         Debug.Log($"{name}: {arg1} changed to {arg2}");
     }

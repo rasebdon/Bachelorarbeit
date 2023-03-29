@@ -4,7 +4,7 @@
     {
         bool IsConfigured { get; set; }
         byte[] Key { get; }
-        
+
         byte[] GenerateMAC(byte[] data);
     }
 }

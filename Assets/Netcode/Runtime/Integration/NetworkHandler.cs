@@ -1,14 +1,12 @@
-﻿using Netcode.Behaviour;
-using Netcode.Channeling;
+﻿using Netcode.Channeling;
+using Netcode.Runtime.Behaviour;
 using Netcode.Runtime.Communication.Client;
 using Netcode.Runtime.Communication.Common.Logging;
 using Netcode.Runtime.Communication.Common.Messaging;
-using Netcode.Runtime.Communication.Common.Pipeline;
 using Netcode.Runtime.Communication.Common.Serialization;
 using Netcode.Runtime.Communication.Server;
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -135,7 +133,7 @@ namespace Netcode.Runtime.Integration
 
         private void NetworkVariableSyncServer(object sender, ServerMessageReceiveEventArgs e)
         {
-            if(e.Message is SyncNetworkVariableMessage msg)
+            if (e.Message is SyncNetworkVariableMessage msg)
             {
                 var nedId = NetworkIdentity.FindByGuid(msg.NetworkIdentity);
 

@@ -7,7 +7,6 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Netcode.Runtime.Communication.Client
@@ -15,15 +14,15 @@ namespace Netcode.Runtime.Communication.Client
     public class NetworkClient : NetworkClientBase<NetworkClient>
     {
         public NetworkClient(
-            ILogger<NetworkClient> logger) 
-            : 
-            base(   
+            ILogger<NetworkClient> logger)
+            :
+            base(
                 0,
-                new TcpClient(), 
+                new TcpClient(),
                 new UdpClient(AddressFamily.InterNetwork),
                 new RSAEncryption(),
                 logger)
-        { 
+        {
             OnReceive += OnConnectionInfoMessageReceive;
         }
 
@@ -39,11 +38,11 @@ namespace Netcode.Runtime.Communication.Client
                 await Connect(hostname, tcpPort, udpPort);
                 return;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 throw ex;
             }
-            
+
             UdpEndPoint = new IPEndPoint(IPAddress.Parse(hostname), udpPort);
 
             BeginReceiveTcpAsync();
@@ -60,8 +59,8 @@ namespace Netcode.Runtime.Communication.Client
 
         #region OnReceive Message Behaviours
 
-        private IEncryption _encryption; 
-        private IMACHandler _macHandler; 
+        private IEncryption _encryption;
+        private IMACHandler _macHandler;
 
         private void OnConnectionInfoMessageReceive(object sender, NetworkMessageRecieveArgs args)
         {
@@ -91,11 +90,11 @@ namespace Netcode.Runtime.Communication.Client
                 encryptedMACKey);
 
 
-            if(!OnMessageSent.ContainsKey(typeof(EncryptionInfoMessage)))
+            if (!OnMessageSent.ContainsKey(typeof(EncryptionInfoMessage)))
                 OnMessageSent.Add(typeof(EncryptionInfoMessage), new List<Action<NetworkMessage>>());
 
             OnMessageSent[typeof(EncryptionInfoMessage)].Add(OnEncryptionInfoMessageSent);
-            
+
             SendTcp(answer);
         }
 

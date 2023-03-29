@@ -1,13 +1,4 @@
-﻿using Netcode.Behaviour;
-using Netcode.Runtime.Communication.Client;
-using Netcode.Runtime.Communication.Common;
-using Netcode.Runtime.Communication.Common.Serialization;
-using Netcode.Runtime.Communication.Server;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Collections.ObjectModel;
+﻿using System.Collections;
 using UnityEngine;
 
 namespace Netcode.Runtime.Integration
@@ -82,7 +73,7 @@ namespace Netcode.Runtime.Integration
         {
             scrollViewStyle ??= GUI.skin.scrollView;
 
-            if(oldHeight != Screen.height)
+            if (oldHeight != Screen.height)
             {
                 scrollViewStyle.normal.background = MakeTex(400, Screen.height, new Color(0, 0, 0, 0.5f));
                 oldHeight = Screen.height;

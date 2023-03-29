@@ -1,4 +1,4 @@
-﻿using Netcode.Behaviour;
+﻿using Netcode.Runtime.Behaviour;
 using System;
 using UnityEditor;
 using UnityEngine;
@@ -14,7 +14,7 @@ namespace Netcode.Editor.Behaviour
             NetworkIdentity netId = (NetworkIdentity)target;
 
             // It is a prefab
-            if(netId.gameObject.scene.rootCount == 0)
+            if (netId.gameObject.scene.rootCount == 0)
             {
                 netId.Guid = Guid.Empty;
             }

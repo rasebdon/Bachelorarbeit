@@ -1,17 +1,10 @@
-﻿using Netcode.Runtime.Communication.Common;
-using Netcode.Runtime.Communication.Common.Logging;
+﻿using Netcode.Runtime.Communication.Common.Logging;
 using Netcode.Runtime.Communication.Common.Messaging;
-using Netcode.Runtime.Communication.Common.Pipeline;
 using Netcode.Runtime.Communication.Common.Security;
-using Netcode.Runtime.Communication.Common.Serialization;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Netcode.Runtime.Communication.Server
 {
@@ -106,7 +99,7 @@ namespace Netcode.Runtime.Communication.Server
 
                 _logger.LogInfo("Started");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex);
             }
@@ -127,8 +120,8 @@ namespace Netcode.Runtime.Communication.Server
                 // Accept the client
                 TcpClient tcpClient = _tcpServer.EndAcceptTcpClient(result);
                 NetworkServerClient client = new(
-                    NextClientId, 
-                    tcpClient, 
+                    NextClientId,
+                    tcpClient,
                     _udpClient,
                     _asymmetricEncryption,
                     _loggerFactory.CreateLogger<NetworkServerClient>());
@@ -227,14 +220,14 @@ namespace Netcode.Runtime.Communication.Server
 
                 _udpClient.BeginReceive(OnUdpReceive, null);
             }
-            catch(ObjectDisposedException ex)
+            catch (ObjectDisposedException ex)
             {
                 if (!_stopped)
                 {
                     _logger.LogError(ex);
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex);
             }
@@ -267,7 +260,7 @@ namespace Netcode.Runtime.Communication.Server
 
                 _logger.LogInfo("Stopped");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex);
             }

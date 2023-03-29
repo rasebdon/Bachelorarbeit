@@ -3,7 +3,7 @@ using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Integration;
 using System;
 
-namespace Netcode.Behaviour
+namespace Netcode.Runtime.Behaviour
 {
     public enum NetworkVariableWritePermission
     {
@@ -31,7 +31,7 @@ namespace Netcode.Behaviour
 
         public object Value
         {
-            get 
+            get
             {
                 if (_networkBehaviour == null)
                 {
@@ -45,9 +45,9 @@ namespace Netcode.Behaviour
 
                 throw new InvalidOperationException("Cannot get value of network variable if object has no read permissions!");
             }
-            set 
-            { 
-                if(_networkBehaviour == null)
+            set
+            {
+                if (_networkBehaviour == null)
                 {
                     throw new InvalidOperationException("Cannot set value of network variable before object is spawned!");
                 }
@@ -70,8 +70,8 @@ namespace Netcode.Behaviour
 
         public NetworkVariableBase() : this(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Everyone) { }
         public NetworkVariableBase(object initialValue) : this(initialValue, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Everyone) { }
-        public NetworkVariableBase(object initialValue, 
-            NetworkVariableReadPermission readPermission = NetworkVariableReadPermission.Everyone, 
+        public NetworkVariableBase(object initialValue,
+            NetworkVariableReadPermission readPermission = NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission writePermission = NetworkVariableWritePermission.Everyone)
         {
             _value = initialValue;
@@ -103,13 +103,13 @@ namespace Netcode.Behaviour
         {
             UnityMainThreadDispatcher.Instance().Enqueue(() =>
             {
-                OnValueChange.Invoke(_value, value);
+                _onValueChange.Invoke(_value, value);
                 _value = value;
             });
-            
+
         }
 
-        public Action<object, object> OnValueChange;
+        protected Action<object, object> _onValueChange;
 
         public void SetNetworkBehaviour(NetworkBehaviour behavior)
         {

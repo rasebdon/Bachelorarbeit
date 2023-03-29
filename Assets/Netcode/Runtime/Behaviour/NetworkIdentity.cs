@@ -1,14 +1,12 @@
-﻿using Codice.CM.Client.Differences;
-using Netcode.Channeling;
+﻿using Netcode.Channeling;
 using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Integration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.UIElements;
 
-namespace Netcode.Behaviour
+namespace Netcode.Runtime.Behaviour
 {
     [DisallowMultipleComponent]
     public class NetworkIdentity : MonoBehaviour
@@ -93,7 +91,7 @@ namespace Netcode.Behaviour
                 if (msg is InstantiateNetworkObjectMessage inomToPlayerFromObject)
                 {
                     // Also sync this object to the player
-                    if (inomToPlayerFromObject.OwnerClientId.HasValue && 
+                    if (inomToPlayerFromObject.OwnerClientId.HasValue &&
                         inomToPlayerFromObject.OwnerClientId != this.OwnerClientId)
                     {
                         var thisObjectSync = new InstantiateNetworkObjectMessage(
@@ -104,10 +102,10 @@ namespace Netcode.Behaviour
                 }
 
                 // Network Variable Handling
-                if(msg is SyncNetworkVariableMessage syncNetworkVariableMessage)
+                if (msg is SyncNetworkVariableMessage syncNetworkVariableMessage)
                 {
                     // Meant for this identity (on server -> set value)
-                    if(syncNetworkVariableMessage.NetworkIdentity == Guid)
+                    if (syncNetworkVariableMessage.NetworkIdentity == Guid)
                     {
                         if (_networkVariables.TryGetValue(syncNetworkVariableMessage.VariableHash, out var netVar))
                         {
@@ -139,7 +137,7 @@ namespace Netcode.Behaviour
                 {
                     IsSpawned = true;
                 }
-                else if(ChannelHandler.Instance.HasChannels(this))
+                else if (ChannelHandler.Instance.HasChannels(this))
                 {
                     // Send spawn network object message
                     ChannelHandler.Instance.DistributeMessage(
@@ -169,7 +167,7 @@ namespace Netcode.Behaviour
 
         public static NetworkIdentity FindByGuid(Guid id)
         {
-            if(_identities.TryGetValue(id, out NetworkIdentity identity))
+            if (_identities.TryGetValue(id, out NetworkIdentity identity))
             {
                 return identity;
             }

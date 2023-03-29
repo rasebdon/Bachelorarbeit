@@ -1,5 +1,4 @@
-﻿using System;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
 namespace Netcode.Runtime.Communication.Common.Security
@@ -27,7 +26,7 @@ namespace Netcode.Runtime.Communication.Common.Security
             string xmlKey = Encoding.UTF8.GetString(publicKey);
             using RSACryptoServiceProvider rsa = new();
             rsa.FromXmlString(xmlKey);
-            
+
             return rsa.Encrypt(data, false);
         }
 

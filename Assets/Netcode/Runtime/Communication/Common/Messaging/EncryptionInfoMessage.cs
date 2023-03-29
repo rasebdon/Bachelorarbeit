@@ -1,6 +1,4 @@
-﻿using Netcode.Runtime.Communication.Common.Security;
-
-namespace Netcode.Runtime.Communication.Common.Messaging
+﻿namespace Netcode.Runtime.Communication.Common.Messaging
 {
     internal class EncryptionInfoMessage : NetworkMessage
     {

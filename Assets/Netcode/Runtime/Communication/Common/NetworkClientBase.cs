@@ -1,18 +1,18 @@
-﻿using Netcode.Runtime.Communication.Common.Logging;
+﻿using Netcode.Runtime.Communication.Common.Exceptions;
+using Netcode.Runtime.Communication.Common.Logging;
 using Netcode.Runtime.Communication.Common.Messaging;
+using Netcode.Runtime.Communication.Common.Pipeline;
 using Netcode.Runtime.Communication.Common.Security;
 using Netcode.Runtime.Communication.Server;
 using System;
-using System.IO;
-using System.Net.Sockets;
-using System.Net;
-using System.Threading.Tasks;
-using Netcode.Runtime.Communication.Common.Exceptions;
-using System.Collections.Generic;
-using Netcode.Runtime.Communication.Common.Pipeline;
 using System.Collections.Concurrent;
-using System.Threading;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Netcode.Runtime.Communication.Common
 {
@@ -88,7 +88,7 @@ namespace Netcode.Runtime.Communication.Common
                 if (message is SyncNetworkVariableMessage syncMessage)
                 {
                     var existingSyncVariable = TcpMessageQueue_Out.FirstOrDefault(msg => msg is SyncNetworkVariableMessage sync && sync.VariableHash == syncMessage.VariableHash);
-                    
+
                     if (existingSyncVariable != null)
                     {
                         if (existingSyncVariable.TimeStamp > syncMessage.TimeStamp)
@@ -99,7 +99,7 @@ namespace Netcode.Runtime.Communication.Common
                 }
                 TcpMessageQueue_Out.Add(message);
             }
-                
+
         }
 
         /// <summary>
@@ -111,17 +111,17 @@ namespace Netcode.Runtime.Communication.Common
         {
             lock (_udpWriteLock)
             {
-                if(message is SyncNetworkVariableMessage syncMessage)
+                if (message is SyncNetworkVariableMessage syncMessage)
                 {
                     var existingSyncVariable = UdpMessageQueue_Out.FirstOrDefault(msg => msg is SyncNetworkVariableMessage sync && sync.VariableHash == syncMessage.VariableHash);
 
-                    if(existingSyncVariable != null)
+                    if (existingSyncVariable != null)
                     {
                         if (existingSyncVariable.TimeStamp > syncMessage.TimeStamp)
                             return;
                         else
                             UdpMessageQueue_Out.Remove(existingSyncVariable);
-                    }                    
+                    }
                 }
                 UdpMessageQueue_Out.Add(message);
             }
@@ -186,12 +186,12 @@ namespace Netcode.Runtime.Communication.Common
                 for (int i = 0; i < input.Messages.Length; i++)
                 {
                     var message = input.Messages[i];
-                    if (message != null) 
+                    if (message != null)
                         MessageQueue_In.Enqueue(message);
                 }
-                    
+
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 if (ex is ObjectDisposedException or IOException && Disposed)
                 {
@@ -238,7 +238,7 @@ namespace Netcode.Runtime.Communication.Common
                     for (int i = 0; i < output.Messages.Length; i++)
                     {
                         var message = output.Messages[i];
-                        if(OnMessageSent.TryGetValue(message.GetType(), out var action) && action != null)
+                        if (OnMessageSent.TryGetValue(message.GetType(), out var action) && action != null)
                             action.ForEach(a => a?.Invoke(message));
                     }
 
@@ -270,7 +270,7 @@ namespace Netcode.Runtime.Communication.Common
             }
 
             while (!MessageQueue_In.IsEmpty)
-                if(MessageQueue_In.TryDequeue(out var message))
+                if (MessageQueue_In.TryDequeue(out var message))
                     OnReceive?.Invoke(this, new NetworkMessageRecieveArgs(message));
         }
     }

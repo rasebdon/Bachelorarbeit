@@ -1,5 +1,4 @@
-﻿using System;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 
 namespace Netcode.Runtime.Communication.Common.Security
 {
@@ -11,7 +10,7 @@ namespace Netcode.Runtime.Communication.Common.Security
 
         private readonly HMACSHA256 _hmacSHA256;
 
-        public HMAC256Handler() : this (GenerateKey()) { }
+        public HMAC256Handler() : this(GenerateKey()) { }
 
         private static byte[] GenerateKey()
         {

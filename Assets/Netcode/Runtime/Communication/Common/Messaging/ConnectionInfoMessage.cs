@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Netcode.Runtime.Communication.Common.Messaging
+﻿namespace Netcode.Runtime.Communication.Common.Messaging
 {
     /// <summary>
     /// This message is the first message that is sent to the client after a connection

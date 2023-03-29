@@ -1,4 +1,4 @@
-using Netcode.Behaviour;
+using Netcode.Runtime.Behaviour;
 using Netcode.Runtime.Channeling;
 using Netcode.Runtime.Integration;
 using UnityEngine;
@@ -33,7 +33,7 @@ namespace Netcode.Channeling
 
         private void OnDrawGizmos()
         {
-            if(_sphereCollider == null)
+            if (_sphereCollider == null)
             {
                 _sphereCollider = GetComponent<SphereCollider>();
             }
@@ -45,7 +45,7 @@ namespace Netcode.Channeling
 
         private void Update()
         {
-            if (NetworkHandler.Instance != null && 
+            if (NetworkHandler.Instance != null &&
                 NetworkHandler.Instance.IsClient)
             {
                 Destroy(this);

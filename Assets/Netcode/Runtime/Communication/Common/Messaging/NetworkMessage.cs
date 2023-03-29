@@ -6,7 +6,7 @@ namespace Netcode.Runtime.Communication.Common.Messaging
     {
         public DateTime TimeStamp { get; }
 
-        protected NetworkMessage() 
+        protected NetworkMessage()
         {
             TimeStamp = DateTime.Now;
         }

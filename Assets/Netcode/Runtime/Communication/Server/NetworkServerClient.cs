@@ -2,19 +2,13 @@
 using Netcode.Runtime.Communication.Common.Logging;
 using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Communication.Common.Security;
-using System;
-using System.IO;
-using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Netcode.Runtime.Communication.Server
 {
     public class NetworkServerClient : NetworkClientBase<NetworkServerClient>
     {
-        public NetworkServerClient(uint clientId, TcpClient client, UdpClient udpClient, IAsymmetricEncryption asymmetricEncryption, ILogger<NetworkServerClient> logger) 
+        public NetworkServerClient(uint clientId, TcpClient client, UdpClient udpClient, IAsymmetricEncryption asymmetricEncryption, ILogger<NetworkServerClient> logger)
             : base(clientId, client, udpClient, asymmetricEncryption, logger)
         {
             OnReceive += OnEncryptionInfoMessageReceive;

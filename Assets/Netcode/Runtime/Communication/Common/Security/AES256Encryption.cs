@@ -1,6 +1,5 @@
 ﻿using System.IO;
 using System.Security.Cryptography;
-using Unity.VisualScripting;
 
 namespace Netcode.Runtime.Communication.Common.Security
 {

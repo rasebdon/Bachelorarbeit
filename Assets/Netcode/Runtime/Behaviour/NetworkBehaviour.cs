@@ -1,12 +1,7 @@
 ﻿using Netcode.Runtime.Integration;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 
-namespace Netcode.Behaviour
+namespace Netcode.Runtime.Behaviour
 {
     [RequireComponent(typeof(NetworkIdentity))]
     [DisallowMultipleComponent]
@@ -46,7 +41,7 @@ namespace Netcode.Behaviour
 
         private void FixedUpdate()
         {
-            if(Identity.IsSpawned && _networkStarted)
+            if (Identity.IsSpawned && _networkStarted)
             {
                 NetworkFixedUpdate();
             }
@@ -54,7 +49,7 @@ namespace Netcode.Behaviour
 
         private void LateUpdate()
         {
-            if(Identity.IsSpawned && _networkStarted)
+            if (Identity.IsSpawned && _networkStarted)
             {
                 NetworkLateUpdate();
             }

@@ -1,7 +1,5 @@
 ﻿using Netcode.Runtime.Integration;
-using System;
 using UnityEditor;
-using UnityEditor.Sprites;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -54,7 +52,7 @@ namespace Netcode.Editor.Integration
             var menuSceneBuildIndex = serializedObject.FindProperty("_menuSceneBuildIndex");
             bool error = false;
 
-            if(menuSceneBuildIndex.intValue != -1)
+            if (menuSceneBuildIndex.intValue != -1)
             {
                 try
                 {

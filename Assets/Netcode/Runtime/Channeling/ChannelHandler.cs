@@ -1,4 +1,4 @@
-using Netcode.Behaviour;
+using Netcode.Runtime.Behaviour;
 using Netcode.Runtime.Channeling;
 using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Integration;
@@ -38,7 +38,7 @@ namespace Netcode.Channeling
                 entry.AddChannel(channelComposition);
                 channelComposition.Subscribe(identity, ChannelType.Interaction);
 
-                if(entry.ChannelCount == 1)
+                if (entry.ChannelCount == 1)
                 {
                     channelComposition.Subscribe(identity, ChannelType.Environment);
                 }
@@ -70,7 +70,7 @@ namespace Netcode.Channeling
         public void DistributeMessage<T>(NetworkIdentity source, T message, ChannelType type) where T : NetworkMessage
         {
             // Create registry entry with global channel
-            if(!_channelRegistry.TryGetValue(source, out var entry))
+            if (!_channelRegistry.TryGetValue(source, out var entry))
             {
                 CreateAndInsertEntry(source);
             }

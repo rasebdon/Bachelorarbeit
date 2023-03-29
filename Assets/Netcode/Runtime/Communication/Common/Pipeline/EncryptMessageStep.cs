@@ -1,5 +1,4 @@
 ﻿using Netcode.Runtime.Communication.Common.Security;
-using System;
 using System.Threading.Tasks;
 
 namespace Netcode.Runtime.Communication.Common.Pipeline
