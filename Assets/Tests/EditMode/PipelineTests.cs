@@ -28,7 +28,7 @@ public class PipelineTests
         var messages = new NetworkMessage[]
         {
                 new DestroyNetworkObjectMessage(Guid.NewGuid()),
-                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, "test", Guid.NewGuid())
+                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, 412, Guid.NewGuid())
         };
         var output = new PipelineOutputObject
         {
@@ -59,7 +59,7 @@ public class PipelineTests
         var messages = new NetworkMessage[]
         {
                 new DestroyNetworkObjectMessage(Guid.NewGuid()),
-                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, "test", Guid.NewGuid())
+                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, 412, Guid.NewGuid())
         };
         var output = new PipelineOutputObject
         {
@@ -90,7 +90,7 @@ public class PipelineTests
         var messages = new NetworkMessage[]
         {
                 new DestroyNetworkObjectMessage(Guid.NewGuid()),
-                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, "test", Guid.NewGuid())
+                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, 412, Guid.NewGuid())
         };
         var output = new PipelineOutputObject
         {
@@ -122,7 +122,7 @@ public class PipelineTests
         var messages = new NetworkMessage[]
         {
                 new DestroyNetworkObjectMessage(Guid.NewGuid()),
-                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, "test", Guid.NewGuid())
+                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, 412, Guid.NewGuid())
         };
         var output = new PipelineOutputObject
         {

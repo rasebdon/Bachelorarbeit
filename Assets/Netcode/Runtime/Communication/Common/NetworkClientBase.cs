@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using Netcode.Runtime.Communication.Common.Pipeline;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Linq;
 
 namespace Netcode.Runtime.Communication.Common
 {
@@ -41,8 +42,8 @@ namespace Netcode.Runtime.Communication.Common
         // Asymmetric encryption for initialization
         protected readonly IAsymmetricEncryption _asymmetricEncryption;
 
-        private ConcurrentQueue<NetworkMessage> UdpMessageQueue_Out { get; } = new();
-        private ConcurrentQueue<NetworkMessage> TcpMessageQueue_Out { get; } = new();
+        private List<NetworkMessage> UdpMessageQueue_Out { get; } = new();
+        private List<NetworkMessage> TcpMessageQueue_Out { get; } = new();
         private ConcurrentQueue<NetworkMessage> MessageQueue_In { get; } = new();
 
         protected readonly ILogger<T> _logger;
@@ -82,8 +83,23 @@ namespace Netcode.Runtime.Communication.Common
         /// <param name="message"></param>
         public void SendTcp<MessageType>(MessageType message) where MessageType : NetworkMessage
         {
-            lock(_tcpWriteLock)
-                TcpMessageQueue_Out.Enqueue(message);
+            lock (_tcpWriteLock)
+            {
+                if (message is SyncNetworkVariableMessage syncMessage)
+                {
+                    var existingSyncVariable = TcpMessageQueue_Out.FirstOrDefault(msg => msg is SyncNetworkVariableMessage sync && sync.VariableHash == syncMessage.VariableHash);
+                    
+                    if (existingSyncVariable != null)
+                    {
+                        if (existingSyncVariable.TimeStamp > syncMessage.TimeStamp)
+                            return;
+                        else
+                            TcpMessageQueue_Out.Remove(existingSyncVariable);
+                    }
+                }
+                TcpMessageQueue_Out.Add(message);
+            }
+                
         }
 
         /// <summary>
@@ -94,7 +110,21 @@ namespace Netcode.Runtime.Communication.Common
         public void SendUdp<MessageType>(MessageType message) where MessageType : NetworkMessage
         {
             lock (_udpWriteLock)
-                UdpMessageQueue_Out.Enqueue(message);
+            {
+                if(message is SyncNetworkVariableMessage syncMessage)
+                {
+                    var existingSyncVariable = UdpMessageQueue_Out.FirstOrDefault(msg => msg is SyncNetworkVariableMessage sync && sync.VariableHash == syncMessage.VariableHash);
+
+                    if(existingSyncVariable != null)
+                    {
+                        if (existingSyncVariable.TimeStamp > syncMessage.TimeStamp)
+                            return;
+                        else
+                            UdpMessageQueue_Out.Remove(existingSyncVariable);
+                    }                    
+                }
+                UdpMessageQueue_Out.Add(message);
+            }
         }
 
         public async void BeginReceiveTcpAsync()

@@ -1,10 +1,12 @@
-﻿using Netcode.Channeling;
+﻿using Codice.CM.Client.Differences;
+using Netcode.Channeling;
 using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Integration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Netcode.Behaviour
 {
@@ -13,7 +15,7 @@ namespace Netcode.Behaviour
     {
         private static readonly Dictionary<Guid, NetworkIdentity> _identities = new();
 
-        private Dictionary<string, NetworkVariableBase> _networkVariables = new();
+        private Dictionary<uint, NetworkVariableBase> _networkVariables = new();
 
         public Guid Guid
         {
@@ -60,14 +62,14 @@ namespace Netcode.Behaviour
                 var fields = behavior.GetType().GetFields();
 
                 var filtered = fields.Where(p => p.FieldType.IsSubclassOf(typeof(NetworkVariableBase)))
-                    .Select(p => new KeyValuePair<string, NetworkVariableBase>(
-                        behavior.GetType().Name + "." + p.Name, p.GetValue(behavior) as NetworkVariableBase))
+                    .Select(p => new KeyValuePair<uint, NetworkVariableBase>(
+                        (uint)(behavior.GetType().Name + "." + p.Name).GetHashCode(), p.GetValue(behavior) as NetworkVariableBase))
                     .ToList();
 
                 filtered.ForEach(kvp =>
                 {
                     kvp.Value.SetNetworkBehaviour(behavior);
-                    kvp.Value.Name = kvp.Key;
+                    kvp.Value.Hash = kvp.Key;
                     _networkVariables.Add(kvp.Key, kvp.Value);
                 });
             }
@@ -107,7 +109,7 @@ namespace Netcode.Behaviour
                     // Meant for this identity (on server -> set value)
                     if(syncNetworkVariableMessage.NetworkIdentity == Guid)
                     {
-                        if (_networkVariables.TryGetValue(syncNetworkVariableMessage.VariablePath, out var netVar))
+                        if (_networkVariables.TryGetValue(syncNetworkVariableMessage.VariableHash, out var netVar))
                         {
                             var value = NetworkHandler.Instance.Serializer.Deserialize(
                                 syncNetworkVariableMessage.Value,
@@ -182,7 +184,7 @@ namespace Netcode.Behaviour
                 return;
             }
 
-            if (_networkVariables.TryGetValue(msg.VariablePath, out var netVar))
+            if (_networkVariables.TryGetValue(msg.VariableHash, out var netVar))
             {
                 var value = NetworkHandler.Instance.Serializer.Deserialize(
                     msg.Value,

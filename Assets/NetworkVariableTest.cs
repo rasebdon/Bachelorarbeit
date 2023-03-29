@@ -16,7 +16,8 @@ public class NetworkVariableTest : NetworkBehaviour
         netVar.OnValueChange += PrintValue;
     }
 
-    float timer = 5;
+    private float resetTime = 0.01f;
+    private float timer = 0;
 
     public override void NetworkUpdate()
     {
@@ -29,7 +30,7 @@ public class NetworkVariableTest : NetworkBehaviour
             else
             {
                 AddValue(1);
-                timer = 5;
+                timer = resetTime;
             }
         }
     }

@@ -20,7 +20,7 @@ namespace Netcode.Behaviour
 
     public abstract class NetworkVariableBase
     {
-        public string Name { get; set; }
+        public uint Hash { get; set; }
 
         private NetworkBehaviour _networkBehaviour;
 
@@ -53,7 +53,7 @@ namespace Netcode.Behaviour
                 }
 
                 byte[] data = NetworkHandler.Instance.Serializer.Serialize(value);
-                var syncMessage = new SyncNetworkVariableMessage(data, Name, _networkBehaviour.Identity.Guid);
+                var syncMessage = new SyncNetworkVariableMessage(data, Hash, _networkBehaviour.Identity.Guid);
 
                 if (_networkBehaviour.IsClient && ClientCanWrite(_networkBehaviour.LocalClientId))
                 {

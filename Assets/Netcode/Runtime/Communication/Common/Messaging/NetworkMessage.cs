@@ -1,6 +1,14 @@
-﻿namespace Netcode.Runtime.Communication.Common.Messaging
+﻿using System;
+
+namespace Netcode.Runtime.Communication.Common.Messaging
 {
-    public class NetworkMessage
+    public abstract class NetworkMessage
     {
+        public DateTime TimeStamp { get; }
+
+        protected NetworkMessage() 
+        {
+            TimeStamp = DateTime.Now;
+        }
     }
 }
