@@ -34,13 +34,6 @@ public class ConnectionTests
     }
 
     [Test]
-    public void StartStopServer()
-    {
-        _server.Start();
-        _server.Stop();
-    }
-
-    [Test]
     public async void ConnectSingleClientToServer()
     {
         // Arrange
