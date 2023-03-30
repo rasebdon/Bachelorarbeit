@@ -29,6 +29,8 @@ namespace Netcode.Runtime.Integration
         [SerializeField] private int _menuSceneBuildIndex;
         [SerializeField] private int _serverTickRate;
         [SerializeField] private int _clientTickRate;
+        public int ServerTickRate => _serverTickRate;
+        public int ClientTickRate => _clientTickRate;
 
         // Controls
         public bool IsServer { get => _isServer; private set => _isServer = value; }
@@ -106,8 +108,6 @@ namespace Netcode.Runtime.Integration
                     if (_playerObjects.TryGetValue(args.Client.ClientId, out var playerObject))
                     {
                         Destroy(playerObject.gameObject);
-
-                        // TODO: Send destroy object to other clients
                     }
                 });
             };
@@ -127,7 +127,8 @@ namespace Netcode.Runtime.Integration
         {
             if (e.Message is SyncNetworkVariableMessage msg)
             {
-                NetworkIdentity.FindByGuid(msg.NetworkIdentity).SetNetworkVariableFromServerOnClient(msg);
+                var netId = NetworkIdentity.FindByGuid(msg.NetworkIdentity);
+                if(netId != null) netId.SetNetworkVariableFromServerOnClient(msg);
             }
         }
 
@@ -328,7 +329,7 @@ namespace Netcode.Runtime.Integration
             }
             else if (IsServer || IsHost)
             {
-                _server.Clients.Find(c => c.ClientId == clientId).SendTcp(message);
+                _server.Clients.Find(c => c.ClientId == clientId)?.SendTcp(message);
             }
         }
 
@@ -340,7 +341,7 @@ namespace Netcode.Runtime.Integration
             }
             else if (IsServer || IsHost)
             {
-                _server.Clients.Find(c => c.ClientId == clientId).SendUdp(message);
+                _server.Clients.Find(c => c.ClientId == clientId)?.SendUdp(message);
             }
         }
     }

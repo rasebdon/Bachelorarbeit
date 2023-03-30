@@ -17,6 +17,7 @@ namespace Netcode.Runtime.Communication.Server
         /// The list of all currently connected clients
         /// </summary>
         public List<NetworkServerClient> Clients { get; }
+        private readonly object _clientListLock = new();
 
         /// <summary>
         /// Returns the next client id
@@ -107,10 +108,9 @@ namespace Netcode.Runtime.Communication.Server
 
         public void OnTick()
         {
-            foreach (var client in Clients)
-            {
-                client.OnTick();
-            }
+            lock (_clientListLock)
+                foreach (var client in Clients)
+                    client.OnTick();
         }
 
         private void OnTcpConnect(IAsyncResult result)
@@ -142,7 +142,7 @@ namespace Netcode.Runtime.Communication.Server
                 else
                 {
                     // Client connection started
-                    Clients.Add(client);
+                    lock (_clientListLock) Clients.Add(client);
                     client.OnConnect += (uint clientId) =>
                     {
                         _logger.LogInfo($"Client {clientId} connected!");
@@ -156,7 +156,7 @@ namespace Netcode.Runtime.Communication.Server
                         _logger.LogInfo($"Client {clientId} disconnecting!");
 
                         OnServerClientDisconnect?.Invoke(this, new ServerConnectionEventArgs(client));
-                        Clients.Remove(client);
+                        lock (_clientListLock) Clients.Remove(client);
 
                         client.Dispose();
                     };
@@ -165,7 +165,7 @@ namespace Netcode.Runtime.Communication.Server
                     client.OnReceive += (object sender, NetworkMessageRecieveArgs args) =>
                     {
                         NetworkServerClient client = (NetworkServerClient)sender;
-                        _logger.LogDetail($"Message received for client {client.ClientId} of type {args.Message.GetType().Name}");
+                        //_logger.LogDetail($"Message received for client {client.ClientId} of type {args.Message.GetType().Name}");
 
                         ServerMessageReceiveEventArgs newArgs = new(client, args.Message);
                         OnServerMessageReceive?.Invoke(this, newArgs);
@@ -254,7 +254,7 @@ namespace Netcode.Runtime.Communication.Server
                     clients[i]?.Dispose();
                 }
 
-                Clients.Clear();
+                lock (_clientListLock) Clients.Clear();
                 _udpClient?.Dispose();
                 _tcpServer?.Stop();
 

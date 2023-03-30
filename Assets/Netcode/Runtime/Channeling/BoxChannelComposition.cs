@@ -4,7 +4,7 @@ namespace Netcode.Runtime.Channeling
 {
     [RequireComponent(typeof(BoxCollider))]
     [DisallowMultipleComponent]
-    public class BoxChannelComposition : ChannelComposition
+    public class BoxChannelComposition : Zone
     {
 #if UNITY_EDITOR
 

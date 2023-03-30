@@ -37,7 +37,8 @@ namespace Netcode.Runtime.Communication.Common
         protected readonly UdpClient _udpClient;
 
         // Message Protocol Variables
-        protected readonly IPipeline _pipeline;
+        protected IPipeline _pipeline;
+        private CancellationTokenSource _cancellationTokenSource = new();
 
         // Asymmetric encryption for initialization
         protected readonly IAsymmetricEncryption _asymmetricEncryption;
@@ -52,7 +53,6 @@ namespace Netcode.Runtime.Communication.Common
 
         public Dictionary<Type, List<Action<NetworkMessage>>> OnMessageSent { get; set; } = new();
 
-        private readonly CancellationTokenSource _cancellationTokenSource = new();
 
         public NetworkClientBase(
             uint clientId,
@@ -64,12 +64,18 @@ namespace Netcode.Runtime.Communication.Common
             OnMessageSent = new();
             ClientId = clientId;
             _asymmetricEncryption = asymmetricEncryption;
-            _cancellationTokenSource = new();
-            _pipeline = PipelineFactory.CreatePipeline(_cancellationTokenSource);
+            ResetPipeline();
             _tcpClient = client;
             _udpClient = udpClient;
             _logger = logger;
             Disposed = false;
+        }
+
+        protected void ResetPipeline()
+        {
+            _cancellationTokenSource.Cancel();
+            _cancellationTokenSource = new();
+            _pipeline = PipelineFactory.CreatePipeline(_cancellationTokenSource);
         }
 
         ~NetworkClientBase()
@@ -215,6 +221,7 @@ namespace Netcode.Runtime.Communication.Common
                 return;
 
             _cancellationTokenSource.Cancel();
+            _pipeline = null;
             Disposed = true;
             OnDisconnect?.Invoke(ClientId);
             _tcpClient?.Dispose();

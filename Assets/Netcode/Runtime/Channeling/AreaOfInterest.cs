@@ -48,23 +48,23 @@ namespace Netcode.Channeling
             if (NetworkHandler.Instance != null &&
                 NetworkHandler.Instance.IsClient)
             {
-                Destroy(this);
+                Destroy(gameObject);
             }
         }
 
         private void OnTriggerEnter(Collider other)
         {
-            if (other.GetComponent<ChannelComposition>() is ChannelComposition channel)
+            if (other.GetComponent<Zone>() is Zone channel)
             {
-                _handler.AddChannels(_identity, channel);
+                _handler.EnterZone(_identity, channel);
             }
         }
 
         private void OnTriggerExit(Collider other)
         {
-            if (other.GetComponent<ChannelComposition>() is ChannelComposition channel)
+            if (other.GetComponent<Zone>() is Zone channel)
             {
-                _handler.RemoveChannels(_identity, channel);
+                _handler.ExitZone(_identity, channel);
             }
         }
     }

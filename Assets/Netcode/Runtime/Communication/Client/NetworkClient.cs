@@ -1,12 +1,14 @@
 ﻿using Netcode.Runtime.Communication.Common;
 using Netcode.Runtime.Communication.Common.Logging;
 using Netcode.Runtime.Communication.Common.Messaging;
+using Netcode.Runtime.Communication.Common.Pipeline;
 using Netcode.Runtime.Communication.Common.Security;
 using Netcode.Runtime.Communication.Server;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Netcode.Runtime.Communication.Client
@@ -28,6 +30,8 @@ namespace Netcode.Runtime.Communication.Client
 
         public async Task Connect(string hostname, ushort tcpPort, ushort udpPort)
         {
+            ResetPipeline();
+
             try
             {
                 await _tcpClient.ConnectAsync(hostname, tcpPort);

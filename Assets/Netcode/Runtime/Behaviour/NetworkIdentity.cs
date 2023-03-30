@@ -161,7 +161,7 @@ namespace Netcode.Runtime.Behaviour
                 ChannelType.Environment);
             }
 
-            ChannelHandler.Instance.RemoveIdentity(this);
+            ChannelHandler.Instance.ExitFromAllZones(this);
             _identities.Remove(Guid);
         }
 

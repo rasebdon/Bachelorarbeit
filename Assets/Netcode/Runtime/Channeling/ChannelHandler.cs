@@ -2,9 +2,12 @@ using Netcode.Runtime.Behaviour;
 using Netcode.Runtime.Channeling;
 using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Integration;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Principal;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Netcode.Channeling
 {
@@ -13,7 +16,7 @@ namespace Netcode.Channeling
     {
         public static ChannelHandler Instance { get; private set; }
 
-        private readonly Dictionary<NetworkIdentity, ChannelRegistryEntry> _channelRegistry = new();
+        private readonly Dictionary<NetworkIdentity, ZoneData> _zoneRegistry = new();
 
         private void Awake()
         {
@@ -25,128 +28,79 @@ namespace Netcode.Channeling
             Instance = this;
         }
 
-        public void AddChannels(NetworkIdentity identity, ChannelComposition channelComposition)
+        public void DistributeMessage<T>(NetworkIdentity identity, T message, ChannelType channelType = ChannelType.Environment) where T : NetworkMessage
         {
-            // Check if network identity is registered in channel registry
-            if (!_channelRegistry.TryGetValue(identity, out var entry))
+            if(_zoneRegistry.TryGetValue(identity, out var zoneData) && zoneData.CurrentZone != null)
             {
-                entry = CreateAndInsertEntry(identity);
-            }
-
-            if (!entry.HasChannel(channelComposition))
-            {
-                entry.AddChannel(channelComposition);
-                channelComposition.Subscribe(identity, ChannelType.Interaction);
-
-                if (entry.ChannelCount == 1)
+                switch (channelType)
                 {
-                    channelComposition.Subscribe(identity, ChannelType.Environment);
+                    case ChannelType.Environment:
+                        zoneData.CurrentZone.Publish(message, channelType, true);
+                        break;
+                    case ChannelType.Interaction:
+                        foreach (var zone in zoneData.Zones)
+                            zone.Publish(message, channelType, false);
+                        break;
                 }
             }
         }
 
-        public void RemoveChannels(NetworkIdentity identity, ChannelComposition channelComposition)
+        public void EnterZone(NetworkIdentity identity, Zone zone)
         {
-            // Check if network identity is in registry
-            if (_channelRegistry.TryGetValue(identity, out var entry) && entry.HasChannel(channelComposition))
-            {
-                entry.RemoveChannel(channelComposition);
+            if(!_zoneRegistry.ContainsKey(identity))
+                _zoneRegistry.Add(identity, new());
 
-                channelComposition.Unsubscribe(identity, ChannelType.Interaction);
-                channelComposition.Unsubscribe(identity, ChannelType.Environment);
+            var zoneData = _zoneRegistry[identity];
+
+            zoneData.Zones.Add(zone);
+
+            if (zoneData.CurrentZone == null)
+            {
+                zone.Subscribe(identity, ChannelType.Environment);
+                zoneData.CurrentZone = zone;
+            }
+            
+            zone.Subscribe(identity, ChannelType.Interaction);
+        }
+
+        public void ExitZone(NetworkIdentity identity, Zone zone)
+        {
+            zone.Unsubscribe(identity, ChannelType.Environment);
+            zone.Unsubscribe(identity, ChannelType.Interaction);
+
+            if (_zoneRegistry.TryGetValue(identity, out var zoneData) && 
+                zoneData.CurrentZone == zone)
+            {
+                zoneData.Zones.Remove(zone);
+                zoneData.CurrentZone = zoneData.Zones.FirstOrDefault();
+                if(zoneData.CurrentZone != null)
+                    zoneData.CurrentZone.Subscribe(identity, ChannelType.Environment);
             }
         }
 
-        public void RemoveIdentity(NetworkIdentity identity)
+        public void ExitFromAllZones(NetworkIdentity identity)
         {
-            // Check if network identity is in registry
-            if (_channelRegistry.TryGetValue(identity, out var entry))
+            if(_zoneRegistry.TryGetValue(identity, out var zoneData))
             {
-                entry.UnsubscribeAll();
-                _channelRegistry.Remove(identity);
-            }
-        }
-
-        public void DistributeMessage<T>(NetworkIdentity source, T message, ChannelType type) where T : NetworkMessage
-        {
-            // Create registry entry with global channel
-            if (!_channelRegistry.TryGetValue(source, out var entry))
-            {
-                CreateAndInsertEntry(source);
-            }
-
-            // Distribute to channels
-            if (entry.HasChannels)
-            {
-                // Distribute to main channels
-                entry.CurrentChannel.Publish(message, type, true);
-
-                // If there are more interactions (transitioning)
-                if (type == ChannelType.Interaction)
+                foreach (var zone in zoneData.Zones)
                 {
-                    entry.GetWithoutCurrent().ToList().ForEach(ch => ch.Publish(message, type, false));
+                    zone.Unsubscribe(identity, ChannelType.Environment);
+                    zone.Unsubscribe(identity, ChannelType.Interaction);
                 }
+                
+                _zoneRegistry.Remove(identity);
             }
         }
 
-        public ChannelComposition GetNextCollection(NetworkIdentity identity)
+        public bool HasChannels(NetworkIdentity networkIdentity)
         {
-            if (_channelRegistry.TryGetValue(identity, out var entry))
-            {
-                return entry.CurrentChannel;
-            }
-            return null;
+            return _zoneRegistry.ContainsKey(networkIdentity) && _zoneRegistry[networkIdentity].Zones.Any();
         }
 
-        public bool HasChannels(NetworkIdentity identity)
+        private class ZoneData
         {
-            return _channelRegistry.ContainsKey(identity) && _channelRegistry[identity].HasChannels;
-        }
-
-        // Registry Helper
-
-        ChannelRegistryEntry CreateAndInsertEntry(NetworkIdentity identity)
-        {
-            var entry = new ChannelRegistryEntry(identity);
-            _channelRegistry.Add(identity, entry);
-            return entry;
-        }
-    }
-
-    public class ChannelRegistryEntry
-    {
-        public NetworkIdentity Identity { get; }
-        public bool HasChannels { get => _channels.Any(); }
-        public ChannelComposition CurrentChannel { get => _channels.FirstOrDefault(); }
-        public int ChannelCount { get => _channels.Count; }
-
-        private readonly List<ChannelComposition> _channels = new();
-
-        public IEnumerable<ChannelComposition> GetWithoutCurrent()
-        {
-            return _channels.Where(ch => ch != CurrentChannel);
-        }
-
-        public bool HasChannel(ChannelComposition composition) => _channels.Contains(composition);
-
-        public void AddChannel(ChannelComposition composition)
-        {
-            _channels.Add(composition);
-        }
-
-        public void RemoveChannel(ChannelComposition composition)
-        {
-            _channels.Remove(composition);
-        }
-
-        internal void UnsubscribeAll()
-        {
-            _channels.ForEach(ch => { ch.Unsubscribe(Identity, ChannelType.Environment); ch.Unsubscribe(Identity, ChannelType.Interaction); });
-        }
-
-        public ChannelRegistryEntry(NetworkIdentity identity)
-        {
-            Identity = identity;
+            public HashSet<Zone> Zones { get; } = new ();
+            public Zone CurrentZone { get; set; } = null;
         }
     }
 }

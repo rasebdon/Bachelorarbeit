@@ -13,13 +13,13 @@ namespace Netcode.Runtime.Channeling
     /// network objects to those channels.
     /// </summary>
     [DisallowMultipleComponent]
-    public class ChannelComposition : MonoBehaviour
+    public class Zone : MonoBehaviour
     {
-        [SerializeField] private List<ChannelComposition> _neighbors = new();
-        public List<ChannelComposition> Neighbors => _neighbors;
+        [SerializeField] private List<Zone> _neighbors = new();
+        public List<Zone> Neighbors => _neighbors;
 
-        public Channel InteractionChannel { get; private set; }
-        public Channel EnvironmentChannel { get; private set; }
+        private Channel InteractionChannel { get; set; }
+        private Channel EnvironmentChannel { get; set; }
 
         private void Awake()
         {
@@ -30,8 +30,6 @@ namespace Netcode.Runtime.Channeling
 
         public void Publish<T>(T message, ChannelType channel, bool publishToNeighbors = true) where T : NetworkMessage
         {
-            Debug.Log($"Publishing {typeof(T).Name} on ChannelComposition {name} on {channel} with{(publishToNeighbors ? "" : "out")} neighbor invocation");
-
             switch (channel)
             {
                 case ChannelType.Interaction:
@@ -44,7 +42,7 @@ namespace Netcode.Runtime.Channeling
                     // Publish to neighbors
                     if (publishToNeighbors)
                     {
-                        Neighbors.ForEach(ch => ch.EnvironmentChannel.Publish(message));
+                        Neighbors.ForEach(ch => ch.Publish(message, ChannelType.Environment, false));
                     }
                     break;
                 default:
@@ -59,6 +57,8 @@ namespace Netcode.Runtime.Channeling
         /// <param name="netId"></param>
         public void Subscribe(NetworkIdentity netId, ChannelType type)
         {
+            Debug.Log($"Subscribing {netId} to {name} {type}");
+
             switch (type)
             {
                 case ChannelType.Environment:
@@ -79,6 +79,8 @@ namespace Netcode.Runtime.Channeling
         /// <param name="netId"></param>
         public void Unsubscribe(NetworkIdentity netId, ChannelType type)
         {
+            Debug.Log($"Unsubscribing {netId} to {name} {type}");
+
             switch (type)
             {
                 case ChannelType.Environment:
