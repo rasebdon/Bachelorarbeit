@@ -1,4 +1,6 @@
-﻿using Netcode.Runtime.Behaviour;
+﻿#if UNITY_EDITOR
+
+using Netcode.Runtime.Behaviour;
 using System;
 using UnityEditor;
 using UnityEngine;
@@ -34,3 +36,5 @@ namespace Netcode.Editor.Behaviour
         }
     }
 }
+
+#endif

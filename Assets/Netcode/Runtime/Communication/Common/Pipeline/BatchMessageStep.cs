@@ -9,7 +9,7 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
     {
         public PipelineOutputObject Apply(PipelineOutputObject output)
         {
-            output.OutputData.InsertRange(0, BitConverter.GetBytes((short)output.Messages.Count()));
+            output.OutputData.InsertBeginning(BitConverter.GetBytes((short)output.Messages.Count()));
             return output;
         }
 

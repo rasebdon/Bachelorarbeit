@@ -1,12 +1,14 @@
 ﻿using Netcode.Runtime.Communication.Common.Messaging;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using UnityEngine.UIElements;
 
 namespace Netcode.Runtime.Communication.Common.Pipeline
 {
     public struct PipelineOutputObject
     {
-        public List<byte> OutputData;
+        public WriteOnlyByteBuffer OutputData;
         public NetworkMessage[] Messages;
     }
 
@@ -15,6 +17,51 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
         public Stream InputStream;
         public ReadOnlyByteBuffer InputBuffer;
         public NetworkMessage[] Messages;
+    }
+
+    public struct WriteOnlyByteBuffer
+    {
+        private byte[] _data;
+        
+        public int Length => _data == null ? 0 : _data.Length;
+
+        public WriteOnlyByteBuffer(byte[] data)
+        {
+            _data = data;
+        }
+
+        public void InsertBeginning(byte[] data)
+        {
+            if(_data == null)
+            {
+                _data = data;
+                return;
+            }
+
+            byte[] newData = new byte[data.Length + _data.Length];
+            data.CopyTo(newData, 0);
+            _data.CopyTo(newData, data.Length);
+            _data = newData;
+        }
+
+        public void InsertEnd(byte[] data)
+        {
+            if (_data == null)
+            {
+                _data = data;
+                return;
+            }
+
+            byte[] newData = new byte[data.Length + _data.Length];
+            _data.CopyTo(newData, 0);
+            data.CopyTo(newData, _data.Length);
+            _data = newData;
+        }
+
+        public byte[] ToArray()
+        {
+            return _data ?? (new byte[0]);
+        }
     }
 
     public struct ReadOnlyByteBuffer

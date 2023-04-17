@@ -18,9 +18,9 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
             foreach (var message in output.Messages)
             {
                 var serializedMessage = _messageSerializer.Serialize(message);
-                output.OutputData.AddRange(BitConverter.GetBytes(_messageSerializer.GetMessageTypeId(message.GetType())));
-                output.OutputData.AddRange(BitConverter.GetBytes(serializedMessage.Length));
-                output.OutputData.AddRange(serializedMessage);
+                output.OutputData.InsertEnd(BitConverter.GetBytes(_messageSerializer.GetMessageTypeId(message.GetType())));
+                output.OutputData.InsertEnd(BitConverter.GetBytes(serializedMessage.Length));
+                output.OutputData.InsertEnd(serializedMessage);
             }
 
             return output;

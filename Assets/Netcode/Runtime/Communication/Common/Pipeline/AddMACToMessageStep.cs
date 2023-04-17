@@ -17,8 +17,8 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
         public PipelineOutputObject Apply(PipelineOutputObject output)
         {
             var mac = _macHandler.GenerateMAC(output.OutputData.ToArray());
-            output.OutputData.InsertRange(0, BitConverter.GetBytes((short)mac.Length));
-            output.OutputData.InsertRange(2, mac);
+            output.OutputData.InsertBeginning(mac);
+            output.OutputData.InsertBeginning(BitConverter.GetBytes((short)mac.Length));
             return output;
         }
 

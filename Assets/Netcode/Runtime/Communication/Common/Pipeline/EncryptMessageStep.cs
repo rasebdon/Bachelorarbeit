@@ -15,8 +15,7 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
         public PipelineOutputObject Apply(PipelineOutputObject output)
         {
             var encrypted = _encryption.Encrypt(output.OutputData.ToArray());
-            output.OutputData.Clear();
-            output.OutputData.AddRange(encrypted);
+            output.OutputData = new WriteOnlyByteBuffer(encrypted);
             return output;
         }
 

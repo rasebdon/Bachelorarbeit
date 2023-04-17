@@ -15,7 +15,7 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
 
         public PipelineOutputObject Apply(PipelineOutputObject output)
         {
-            output.OutputData.InsertRange(0, BitConverter.GetBytes(output.OutputData.Count));
+            output.OutputData.InsertBeginning(BitConverter.GetBytes(output.OutputData.Length));
             return output;
         }
 

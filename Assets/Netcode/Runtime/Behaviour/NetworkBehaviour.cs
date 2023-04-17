@@ -4,7 +4,6 @@ using UnityEngine;
 namespace Netcode.Runtime.Behaviour
 {
     [RequireComponent(typeof(NetworkIdentity))]
-    [DisallowMultipleComponent]
     public abstract class NetworkBehaviour : MonoBehaviour
     {
         // Helper properties

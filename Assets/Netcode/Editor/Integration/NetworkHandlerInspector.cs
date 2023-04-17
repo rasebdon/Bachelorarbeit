@@ -1,4 +1,6 @@
-﻿using Netcode.Runtime.Integration;
+﻿#if UNITY_EDITOR
+
+using Netcode.Runtime.Integration;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -98,3 +100,5 @@ namespace Netcode.Editor.Integration
         }
     }
 }
+
+#endif
