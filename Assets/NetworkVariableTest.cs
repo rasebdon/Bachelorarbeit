@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class NetworkVariableTest : NetworkBehaviour
 {
-    public NetworkVariable<int> netVar = new(10);
+    public NetworkVariable<int> netVar = new(10, false);
 
     public override void NetworkStart()
     {

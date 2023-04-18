@@ -14,16 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_PixelRect:
     serializedVersion: 2
-    x: 0
-    y: 43
-    width: 2560
-    height: 1349
+    x: 8
+    y: 51
+    width: 2544
+    height: 1333
   m_ShowMode: 4
   m_Title: Inspector
   m_RootView: {fileID: 2}
   m_MinSize: {x: 875, y: 300}
   m_MaxSize: {x: 10000, y: 10000}
-  m_Maximized: 1
+  m_Maximized: 0
 --- !u!114 &2
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -44,8 +44,8 @@ MonoBehaviour:
     serializedVersion: 2
     x: 0
     y: 0
-    width: 2560
-    height: 1349
+    width: 2544
+    height: 1333
   m_MinSize: {x: 875, y: 300}
   m_MaxSize: {x: 10000, y: 10000}
   m_UseTopView: 1
@@ -69,7 +69,7 @@ MonoBehaviour:
     serializedVersion: 2
     x: 0
     y: 0
-    width: 2560
+    width: 2544
     height: 30
   m_MinSize: {x: 0, y: 0}
   m_MaxSize: {x: 0, y: 0}
@@ -90,8 +90,8 @@ MonoBehaviour:
   m_Position:
     serializedVersion: 2
     x: 0
-    y: 1329
-    width: 2560
+    y: 1313
+    width: 2544
     height: 20
   m_MinSize: {x: 0, y: 0}
   m_MaxSize: {x: 0, y: 0}
@@ -114,12 +114,12 @@ MonoBehaviour:
     serializedVersion: 2
     x: 0
     y: 30
-    width: 2560
-    height: 1299
+    width: 2544
+    height: 1283
   m_MinSize: {x: 300, y: 200}
   m_MaxSize: {x: 24288, y: 16192}
   vertical: 0
-  controlID: 27
+  controlID: 21
 --- !u!114 &6
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -139,12 +139,12 @@ MonoBehaviour:
     serializedVersion: 2
     x: 0
     y: 0
-    width: 1975
-    height: 1299
+    width: 1963
+    height: 1283
   m_MinSize: {x: 200, y: 200}
   m_MaxSize: {x: 16192, y: 16192}
   vertical: 1
-  controlID: 17
+  controlID: 62
 --- !u!114 &7
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -164,12 +164,12 @@ MonoBehaviour:
     serializedVersion: 2
     x: 0
     y: 0
-    width: 1975
-    height: 755
+    width: 1963
+    height: 746
   m_MinSize: {x: 200, y: 100}
   m_MaxSize: {x: 16192, y: 8096}
   vertical: 0
-  controlID: 18
+  controlID: 63
 --- !u!114 &8
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -187,8 +187,8 @@ MonoBehaviour:
     serializedVersion: 2
     x: 0
     y: 0
-    width: 309
-    height: 755
+    width: 306
+    height: 746
   m_MinSize: {x: 201, y: 221}
   m_MaxSize: {x: 4001, y: 4021}
   m_ActualView: {fileID: 13}
@@ -211,10 +211,10 @@ MonoBehaviour:
   m_Children: []
   m_Position:
     serializedVersion: 2
-    x: 309
+    x: 306
     y: 0
-    width: 1666
-    height: 755
+    width: 1657
+    height: 746
   m_MinSize: {x: 202, y: 221}
   m_MaxSize: {x: 4002, y: 4021}
   m_ActualView: {fileID: 14}
@@ -233,23 +233,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 1
   m_Script: {fileID: 12006, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: TestRunnerWindow
+  m_Name: ConsoleWindow
   m_EditorClassIdentifier: 
   m_Children: []
   m_Position:
     serializedVersion: 2
     x: 0
-    y: 755
-    width: 1975
-    height: 544
-  m_MinSize: {x: 100, y: 100}
-  m_MaxSize: {x: 4000, y: 4000}
-  m_ActualView: {fileID: 17}
+    y: 746
+    width: 1963
+    height: 537
+  m_MinSize: {x: 101, y: 121}
+  m_MaxSize: {x: 4001, y: 4021}
+  m_ActualView: {fileID: 12}
   m_Panes:
   - {fileID: 16}
   - {fileID: 12}
   - {fileID: 17}
-  m_Selected: 2
+  m_Selected: 1
   m_LastSelected: 0
 --- !u!114 &11
 MonoBehaviour:
@@ -266,10 +266,10 @@ MonoBehaviour:
   m_Children: []
   m_Position:
     serializedVersion: 2
-    x: 1975
+    x: 1963
     y: 0
-    width: 585
-    height: 1299
+    width: 581
+    height: 1283
   m_MinSize: {x: 276, y: 71}
   m_MaxSize: {x: 4001, y: 4021}
   m_ActualView: {fileID: 18}
@@ -297,10 +297,10 @@ MonoBehaviour:
     m_Tooltip: 
   m_Pos:
     serializedVersion: 2
-    x: 0
-    y: 829
-    width: 1974
-    height: 522
+    x: 8
+    y: 827
+    width: 1962
+    height: 516
   m_ViewDataDictionary: {fileID: 0}
   m_OverlayCanvas:
     m_LastAppliedPresetName: Default
@@ -325,10 +325,10 @@ MonoBehaviour:
     m_Tooltip: 
   m_Pos:
     serializedVersion: 2
-    x: 0
-    y: 73
-    width: 308
-    height: 734
+    x: 8
+    y: 81
+    width: 305
+    height: 725
   m_ViewDataDictionary: {fileID: 0}
   m_OverlayCanvas:
     m_LastAppliedPresetName: Default
@@ -338,7 +338,7 @@ MonoBehaviour:
       scrollPos: {x: 0, y: 0}
       m_SelectedIDs: 
       m_LastClickedID: 0
-      m_ExpandedIDs: deefffff2cf0ffff5af1ffff10f3ffff5ef9ffffcaf9ffff26fbffff
+      m_ExpandedIDs: 32fbffff
       m_RenameOverlay:
         m_UserAcceptedRename: 0
         m_Name: 
@@ -382,10 +382,10 @@ MonoBehaviour:
     m_Tooltip: 
   m_Pos:
     serializedVersion: 2
-    x: 309
-    y: 73
-    width: 1664
-    height: 734
+    x: 314
+    y: 81
+    width: 1655
+    height: 725
   m_ViewDataDictionary: {fileID: 0}
   m_OverlayCanvas:
     m_LastAppliedPresetName: Default
@@ -620,9 +620,9 @@ MonoBehaviour:
   m_PlayAudio: 0
   m_AudioPlay: 0
   m_Position:
-    m_Target: {x: 2.856598, y: 12.108749, z: 7.6779757}
+    m_Target: {x: 10.304487, y: 19.98633, z: 5.770938}
     speed: 2
-    m_Value: {x: 2.856598, y: 12.108749, z: 7.6779757}
+    m_Value: {x: 10.304487, y: 19.98633, z: 5.770938}
   m_RenderMode: 0
   m_CameraMode:
     drawMode: 0
@@ -669,9 +669,9 @@ MonoBehaviour:
     m_GridAxis: 1
     m_gridOpacity: 0.5
   m_Rotation:
-    m_Target: {x: 0.03033593, y: -0.9059958, z: 0.41702425, w: 0.06590126}
+    m_Target: {x: 0.2007355, y: -0.7985732, z: 0.3821964, w: 0.4194186}
     speed: 2
-    m_Value: {x: 0.030335914, y: -0.90599537, z: 0.41702405, w: 0.06590123}
+    m_Value: {x: 0.20073551, y: -0.79857326, z: 0.38219643, w: 0.41941863}
   m_Size:
     m_Target: 1.7320508
     speed: 2
@@ -720,10 +720,10 @@ MonoBehaviour:
     m_Tooltip: 
   m_Pos:
     serializedVersion: 2
-    x: -1688
-    y: 430
-    width: 1247
-    height: 525
+    x: 314
+    y: 81
+    width: 1655
+    height: 725
   m_ViewDataDictionary: {fileID: 0}
   m_OverlayCanvas:
     m_LastAppliedPresetName: Default
@@ -734,7 +734,7 @@ MonoBehaviour:
   m_ShowGizmos: 0
   m_TargetDisplay: 0
   m_ClearColor: {r: 0, g: 0, b: 0, a: 0}
-  m_TargetSize: {x: 1247, y: 504}
+  m_TargetSize: {x: 1655, y: 704}
   m_TextureFilterMode: 0
   m_TextureHideFlags: 61
   m_RenderIMGUI: 1
@@ -749,10 +749,10 @@ MonoBehaviour:
     m_VRangeLocked: 0
     hZoomLockedByDefault: 0
     vZoomLockedByDefault: 0
-    m_HBaseRangeMin: -623.5
-    m_HBaseRangeMax: 623.5
-    m_VBaseRangeMin: -252
-    m_VBaseRangeMax: 252
+    m_HBaseRangeMin: -827.5
+    m_HBaseRangeMax: 827.5
+    m_VBaseRangeMin: -352
+    m_VBaseRangeMax: 352
     m_HAllowExceedBaseRangeMin: 1
     m_HAllowExceedBaseRangeMax: 1
     m_VAllowExceedBaseRangeMin: 1
@@ -770,23 +770,23 @@ MonoBehaviour:
       serializedVersion: 2
       x: 0
       y: 21
-      width: 1247
-      height: 504
+      width: 1655
+      height: 704
     m_Scale: {x: 1, y: 1}
-    m_Translation: {x: 623.5, y: 252}
+    m_Translation: {x: 827.5, y: 352}
     m_MarginLeft: 0
     m_MarginRight: 0
     m_MarginTop: 0
     m_MarginBottom: 0
     m_LastShownAreaInsideMargins:
       serializedVersion: 2
-      x: -623.5
-      y: -252
-      width: 1247
-      height: 504
+      x: -827.5
+      y: -352
+      width: 1655
+      height: 704
     m_MinimalGUI: 1
   m_defaultScale: 1
-  m_LastWindowPixelSize: {x: 1247, y: 525}
+  m_LastWindowPixelSize: {x: 1655, y: 725}
   m_ClearInEditMode: 1
   m_NoCameraWarning: 1
   m_LowResolutionForAspectRatios: 01000000000000000000
@@ -812,10 +812,10 @@ MonoBehaviour:
     m_Tooltip: 
   m_Pos:
     serializedVersion: 2
-    x: 0
-    y: 829
-    width: 1974
-    height: 522
+    x: 8
+    y: 827
+    width: 1962
+    height: 516
   m_ViewDataDictionary: {fileID: 0}
   m_OverlayCanvas:
     m_LastAppliedPresetName: Default
@@ -833,22 +833,22 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Assets
+    - Assets/Netcode
     m_Globs: []
     m_OriginalText: 
   m_ViewMode: 1
   m_StartGridSize: 64
   m_LastFolders:
-  - Assets
+  - Assets/Netcode
   m_LastFoldersGridSize: -1
   m_LastProjectPath: F:\source\repos\Bachelorarbeit
   m_LockTracker:
     m_IsLocked: 0
   m_FolderTreeState:
-    scrollPos: {x: 0, y: 54}
-    m_SelectedIDs: 5a5b0000
-    m_LastClickedID: 23386
-    m_ExpandedIDs: 000000005a5b00005c5b00005e5b0000605b0000625b0000645b0000665b000000ca9a3bffffff7f
+    scrollPos: {x: 0, y: 0}
+    m_SelectedIDs: 525b0000
+    m_LastClickedID: 23378
+    m_ExpandedIDs: 000000004e5b0000505b0000525b0000545b0000565b0000585b00005a5b00005c5b00005e5b0000605b0000625b0000645b0000665b0000685b00006a5b00006c5b00006e5b0000705b0000b05b0000b25b000000ca9a3bffffff7f
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -876,7 +876,7 @@ MonoBehaviour:
     scrollPos: {x: 0, y: 0}
     m_SelectedIDs: 
     m_LastClickedID: 0
-    m_ExpandedIDs: 000000005a5b00005c5b00005e5b0000605b0000625b0000645b0000665b0000
+    m_ExpandedIDs: 000000004e5b0000505b0000525b0000545b0000565b0000585b00005a5b00005c5b00005e5b0000605b0000625b0000645b0000665b0000685b00006a5b00006c5b00006e5b0000705b0000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -901,9 +901,9 @@ MonoBehaviour:
       m_Icon: {fileID: 0}
       m_ResourceFile: 
   m_ListAreaState:
-    m_SelectedInstanceIDs: 
-    m_LastClickedInstanceID: 0
-    m_HadKeyboardFocusLastEvent: 0
+    m_SelectedInstanceIDs: 10f0ffff
+    m_LastClickedInstanceID: -4080
+    m_HadKeyboardFocusLastEvent: 1
     m_ExpandedInstanceIDs: c623000000000000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
@@ -931,7 +931,7 @@ MonoBehaviour:
     m_ScrollPosition: {x: 0, y: 0}
     m_GridSize: 64
   m_SkipHiddenPackages: 0
-  m_DirectoriesAreaWidth: 207
+  m_DirectoriesAreaWidth: 229
 --- !u!114 &17
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -952,16 +952,16 @@ MonoBehaviour:
     m_Tooltip: 
   m_Pos:
     serializedVersion: 2
-    x: 0
-    y: 828
-    width: 1974
-    height: 523
+    x: 8
+    y: 827
+    width: 1962
+    height: 516
   m_ViewDataDictionary: {fileID: 0}
   m_OverlayCanvas:
     m_LastAppliedPresetName: Default
     m_SaveData: []
   m_Spl:
-    ID: 140
+    ID: 85
     splitterInitialOffset: 0
     currentActiveSplitter: -1
     realSizes:
@@ -1028,7 +1028,7 @@ MonoBehaviour:
       name: Bachelorarbeit
       fullName: Bachelorarbeit
       resultStatus: 1
-      duration: 0.9490315
+      duration: 0.1017188
       messages: 
       output: 
       stacktrace: 
@@ -1044,7 +1044,7 @@ MonoBehaviour:
       name: EditModeTests.dll
       fullName: F:/source/repos/Bachelorarbeit/Library/ScriptAssemblies/EditModeTests.dll
       resultStatus: 1
-      duration: 0.8582501
+      duration: 0.0666011
       messages: 
       output: 
       stacktrace: 
@@ -1060,7 +1060,7 @@ MonoBehaviour:
       name: PipelineTests
       fullName: PipelineTests
       resultStatus: 1
-      duration: 0.8459097
+      duration: 0.0660627
       messages: 
       output: 
       stacktrace: 
@@ -1076,9 +1076,31 @@ MonoBehaviour:
       name: ReadWriteEncryption
       fullName: PipelineTests.ReadWriteEncryption
       resultStatus: 1
-      duration: 0.5460116
+      duration: 0.0617856
       messages: 
-      output: 
+      output: '[SerializeMessagesStep][Detail]Output step duration: 0,0000 ms
+
+        [AddBatchMessageHeaderStep][Detail]Output
+        step duration: 0,0000 ms
+
+        [EncryptMessageStep][Detail]Output step
+        duration: 0,0000 ms
+
+        [ReadWriteStreamStep][Detail]Output step duration:
+        0,0000 ms
+
+        [ReadWriteStreamStep][Detail]Input step duration: 0,0000
+        ms
+
+        [EncryptMessageStep][Detail]Input step duration: 0,0000 ms
+
+        [AddBatchMessageHeaderStep][Detail]Input
+        step duration: 0,0000 ms
+
+        [SerializeMessagesStep][Detail]Input step
+        duration: 0,0000 ms
+
+'
       stacktrace: 
       notRunnable: 0
       ignoredOrSkipped: 0
@@ -1093,9 +1115,31 @@ MonoBehaviour:
       name: ReadWriteMac
       fullName: PipelineTests.ReadWriteMac
       resultStatus: 1
-      duration: 0.0947847
+      duration: 0.0685656
       messages: 
-      output: 
+      output: '[SerializeMessagesStep][Detail]Output step duration: 0,0000 ms
+
+        [AddBatchMessageHeaderStep][Detail]Output
+        step duration: 0,0000 ms
+
+        [AddMACToMessageStep][Detail]Output step
+        duration: 1,0000 ms
+
+        [ReadWriteStreamStep][Detail]Output step duration:
+        0,0000 ms
+
+        [ReadWriteStreamStep][Detail]Input step duration: 0,0000
+        ms
+
+        [AddMACToMessageStep][Detail]Input step duration: 0,0000 ms
+
+        [AddBatchMessageHeaderStep][Detail]Input
+        step duration: 0,0000 ms
+
+        [SerializeMessagesStep][Detail]Input step
+        duration: 0,0000 ms
+
+'
       stacktrace: 
       notRunnable: 0
       ignoredOrSkipped: 0
@@ -1110,9 +1154,37 @@ MonoBehaviour:
       name: ReadWriteMacAndEncryption
       fullName: PipelineTests.ReadWriteMacAndEncryption
       resultStatus: 1
-      duration: 0.0789661
+      duration: 0.0679959
       messages: 
-      output: 
+      output: '[SerializeMessagesStep][Detail]Output step duration: 0,0000 ms
+
+        [AddBatchMessageHeaderStep][Detail]Output
+        step duration: 0,0000 ms
+
+        [EncryptMessageStep][Detail]Output step
+        duration: 0,0000 ms
+
+        [AddMACToMessageStep][Detail]Output step duration:
+        0,0000 ms
+
+        [ReadWriteStreamStep][Detail]Output step duration: 0,0000
+        ms
+
+        [ReadWriteStreamStep][Detail]Input step duration: 0,0000 ms
+
+        [AddMACToMessageStep][Detail]Input
+        step duration: 0,0000 ms
+
+        [EncryptMessageStep][Detail]Input step
+        duration: 0,0000 ms
+
+        [AddBatchMessageHeaderStep][Detail]Input step
+        duration: 0,0000 ms
+
+        [SerializeMessagesStep][Detail]Input step duration:
+        0,0000 ms
+
+'
       stacktrace: 
       notRunnable: 0
       ignoredOrSkipped: 0
@@ -1127,9 +1199,26 @@ MonoBehaviour:
       name: ReadWriteNormal
       fullName: PipelineTests.ReadWriteNormal
       resultStatus: 1
-      duration: 0.0931938
+      duration: 0.0653944
       messages: 
-      output: 
+      output: '[SerializeMessagesStep][Detail]Output step duration: 0,0000 ms
+
+        [AddBatchMessageHeaderStep][Detail]Output
+        step duration: 0,0000 ms
+
+        [ReadWriteStreamStep][Detail]Output step
+        duration: 0,0000 ms
+
+        [ReadWriteStreamStep][Detail]Input step duration:
+        0,0000 ms
+
+        [AddBatchMessageHeaderStep][Detail]Input step duration:
+        0,0000 ms
+
+        [SerializeMessagesStep][Detail]Input step duration: 0,0000
+        ms
+
+'
       stacktrace: 
       notRunnable: 0
       ignoredOrSkipped: 0
@@ -1139,12 +1228,31 @@ MonoBehaviour:
       - Uncategorized
       parentId: 1001
       parentUniqueId: EditModeTests.dll/[EditModeTests][PipelineTests][suite]
-    m_ResultText: ReadWriteEncryption (0,546s)
+    m_ResultText: 'ReadWriteNormal (0,065s)
+
+      ---
+
+      [SerializeMessagesStep][Detail]Output
+      step duration: 0,0000 ms
+
+      [AddBatchMessageHeaderStep][Detail]Output step
+      duration: 0,0000 ms
+
+      [ReadWriteStreamStep][Detail]Output step duration:
+      0,0000 ms
+
+      [ReadWriteStreamStep][Detail]Input step duration: 0,0000 ms
+
+      [AddBatchMessageHeaderStep][Detail]Input
+      step duration: 0,0000 ms
+
+      [SerializeMessagesStep][Detail]Input step duration:
+      0,0000 ms'
     m_ResultStacktrace: 
     m_TestListState:
       scrollPos: {x: 0, y: 0}
-      m_SelectedIDs: e0510605
-      m_LastClickedID: 84300256
+      m_SelectedIDs: 22a83d87
+      m_LastClickedID: -2026002398
       m_ExpandedIDs: 6b462184e2e4f21795cc7b7affffff7f
       m_RenameOverlay:
         m_UserAcceptedRename: 0
@@ -1191,10 +1299,10 @@ MonoBehaviour:
     m_Tooltip: 
   m_Pos:
     serializedVersion: 2
-    x: 1975
-    y: 73
-    width: 584
-    height: 1278
+    x: 1971
+    y: 81
+    width: 580
+    height: 1262
   m_ViewDataDictionary: {fileID: 0}
   m_OverlayCanvas:
     m_LastAppliedPresetName: Default

@@ -5,7 +5,8 @@ namespace Netcode.Runtime.Behaviour
     [Serializable]
     public class NetworkVariable<T> : NetworkVariableBase
     {
-        public NetworkVariable(T value) : base(value) 
+        public NetworkVariable(T value) : this(value, true) { }
+        public NetworkVariable(T value, bool reliable) : base(value, reliable) 
         {
             _onValueChange += InvokeOnValueChange;
         }

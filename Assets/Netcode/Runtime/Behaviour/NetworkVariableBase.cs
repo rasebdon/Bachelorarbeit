@@ -26,6 +26,7 @@ namespace Netcode.Runtime.Behaviour
 
         public NetworkVariableReadPermission ReadPermission { get; }
         public NetworkVariableWritePermission WritePermission { get; }
+        public bool IsReliable { get; set; }
 
         private object _value;
 
@@ -58,23 +59,32 @@ namespace Netcode.Runtime.Behaviour
                 if (_networkBehaviour.IsClient && ClientCanWrite(_networkBehaviour.LocalClientId))
                 {
                     // Send message to manipulate the variable
-                    NetworkHandler.Instance.SendTcp(syncMessage, 0);
+                    if(IsReliable)
+                        NetworkHandler.Instance.SendTcp(syncMessage, 0);
+                    else
+                        NetworkHandler.Instance.SendUdp(syncMessage, 0);
                 }
                 else
                 {
                     // Send sync message to clients
-                    ChannelHandler.Instance.DistributeMessage(_networkBehaviour.Identity, syncMessage, ChannelType.Environment);
+                    if(IsReliable)
+                        ChannelHandler.Instance.DistributeMessage(_networkBehaviour.Identity, syncMessage, ChannelType.Environment);
+                    else 
+                        ChannelHandler.Instance.DistributeMessage(_networkBehaviour.Identity, syncMessage, ChannelType.Interaction);
                 }
             }
         }
 
-        public NetworkVariableBase() : this(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Everyone) { }
-        public NetworkVariableBase(object initialValue) : this(initialValue, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Everyone) { }
+        public NetworkVariableBase() : this(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Everyone, true) { }
+        public NetworkVariableBase(object initialValue) : this(initialValue, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Everyone, true) { }
+        public NetworkVariableBase(object initialValue, bool reliable) : this(initialValue, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Everyone, reliable) { }
         public NetworkVariableBase(object initialValue,
             NetworkVariableReadPermission readPermission = NetworkVariableReadPermission.Everyone,
-            NetworkVariableWritePermission writePermission = NetworkVariableWritePermission.Everyone)
+            NetworkVariableWritePermission writePermission = NetworkVariableWritePermission.Everyone,
+            bool reliable = true)
         {
             _value = initialValue;
+            IsReliable = reliable;
             ReadPermission = readPermission;
             WritePermission = writePermission;
         }
@@ -103,7 +113,7 @@ namespace Netcode.Runtime.Behaviour
         {
             UnityMainThreadDispatcher.Instance().Enqueue(() =>
             {
-                _onValueChange.Invoke(_value, value);
+                _onValueChange?.Invoke(_value, value);
                 _value = value;
             });
 
