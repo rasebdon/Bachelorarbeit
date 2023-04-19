@@ -1,14 +1,11 @@
 ﻿using Netcode.Runtime.Communication.Common;
 using Netcode.Runtime.Communication.Common.Logging;
 using Netcode.Runtime.Communication.Common.Messaging;
-using Netcode.Runtime.Communication.Common.Pipeline;
 using Netcode.Runtime.Communication.Common.Security;
-using Netcode.Runtime.Communication.Server;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Netcode.Runtime.Communication.Client
@@ -25,7 +22,7 @@ namespace Netcode.Runtime.Communication.Client
                 new RSAEncryption(),
                 logger)
         {
-            OnReceive += OnConnectionInfoMessageReceive;
+            MessageHandlerRegistry.RegisterHandler(new ActionMessageHandler<ConnectionInfoMessage>(OnConnectionInfoMessageReceive, Guid.Parse("DE17C09E-B072-41E5-B3EE-6D531A63077C")));
         }
 
         public async Task Connect(string hostname, ushort tcpPort, ushort udpPort)
@@ -66,13 +63,8 @@ namespace Netcode.Runtime.Communication.Client
         private IEncryption _encryption;
         private IMACHandler _macHandler;
 
-        private void OnConnectionInfoMessageReceive(object sender, NetworkMessageRecieveArgs args)
+        private void OnConnectionInfoMessageReceive(ConnectionInfoMessage msg, uint? senderClientId)
         {
-            if (args.Message is not ConnectionInfoMessage msg)
-            {
-                return;
-            }
-
             // Set client id from server info
             ClientId = msg.ClientId;
 

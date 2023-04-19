@@ -21,7 +21,7 @@ namespace Netcode.Runtime.Communication.Common
         public uint ClientId { get; protected set; }
 
         // Events
-        public EventHandler<NetworkMessageRecieveArgs> OnReceive;
+        public MessageHandlerRegistry MessageHandlerRegistry { get; }
         public Action<uint> OnDisconnect;
         public Action<uint> OnConnect;
 
@@ -61,6 +61,7 @@ namespace Netcode.Runtime.Communication.Common
             IAsymmetricEncryption asymmetricEncryption,
             ILogger<T> logger)
         {
+            MessageHandlerRegistry = new();
             OnMessageSent = new();
             ClientId = clientId;
             _asymmetricEncryption = asymmetricEncryption;
@@ -278,7 +279,7 @@ namespace Netcode.Runtime.Communication.Common
 
             while (!MessageQueue_In.IsEmpty)
                 if (MessageQueue_In.TryDequeue(out var message))
-                    OnReceive?.Invoke(this, new NetworkMessageRecieveArgs(message));
+                    MessageHandlerRegistry.HandleMessage(message, ClientId);
         }
     }
 }

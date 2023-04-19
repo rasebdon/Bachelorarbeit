@@ -2,6 +2,7 @@
 using Netcode.Runtime.Communication.Common.Logging;
 using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Communication.Common.Security;
+using System;
 using System.Net.Sockets;
 
 namespace Netcode.Runtime.Communication.Server
@@ -11,16 +12,11 @@ namespace Netcode.Runtime.Communication.Server
         public NetworkServerClient(uint clientId, TcpClient client, UdpClient udpClient, IAsymmetricEncryption asymmetricEncryption, ILogger<NetworkServerClient> logger)
             : base(clientId, client, udpClient, asymmetricEncryption, logger)
         {
-            OnReceive += OnEncryptionInfoMessageReceive;
+            MessageHandlerRegistry.RegisterHandler(new ActionMessageHandler<EncryptionInfoMessage>(OnEncryptionInfoMessageReceive, Guid.Parse("025725B8-AB25-4F9F-9EFA-BF819515FF91")));
         }
 
-        private void OnEncryptionInfoMessageReceive(object sender, NetworkMessageRecieveArgs args)
+        private void OnEncryptionInfoMessageReceive(EncryptionInfoMessage msg, uint? senderClientId)
         {
-            if (args.Message is not EncryptionInfoMessage msg)
-            {
-                return;
-            }
-
             // Decrypt information from message with asymmetric encryption from server
             byte[] symmetricIV = _asymmetricEncryption.Decrypt(msg.SymmetricIV);
             byte[] symmetricKey = _asymmetricEncryption.Decrypt(msg.SymmetricKey);

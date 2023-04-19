@@ -43,7 +43,7 @@ namespace Netcode.Runtime.Communication.Server
         /// <summary>
         /// Gets invoked whenever the server receives a message from a client
         /// </summary>
-        public EventHandler<ServerMessageReceiveEventArgs> OnServerMessageReceive;
+        public MessageHandlerRegistry MessageHandlerRegistry { get; }
 
         private TcpListener _tcpServer;
 
@@ -66,6 +66,7 @@ namespace Netcode.Runtime.Communication.Server
             // Setup properties
             MaxClients = maxClients;
             Clients = new();
+            MessageHandlerRegistry = new();
 
             // Setup member variables
             _udpEndpoint = new IPEndPoint(IPAddress.Any, udpPort);
@@ -162,14 +163,7 @@ namespace Netcode.Runtime.Communication.Server
                     };
 
                     // Setup receive on client
-                    client.OnReceive += (object sender, NetworkMessageRecieveArgs args) =>
-                    {
-                        NetworkServerClient client = (NetworkServerClient)sender;
-                        //_logger.LogDetail($"Message received for client {client.ClientId} of type {args.Message.GetType().Name}");
-
-                        ServerMessageReceiveEventArgs newArgs = new(client, args.Message);
-                        OnServerMessageReceive?.Invoke(this, newArgs);
-                    };
+                    client.MessageHandlerRegistry.RegisterHandler(new ProxyMessageHandler(this.MessageHandlerRegistry, Guid.Parse("C476B4CA-EC68-4A54-A615-01C02E3827A9")));
 
                     // Send connection informations to client
                     client.SendTcp(new ConnectionInfoMessage(client.ClientId, _asymmetricEncryption.PublicKey));

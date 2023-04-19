@@ -50,7 +50,8 @@ namespace Netcode.Runtime.Integration
         [SerializeField] private List<GameObject> _objectRegistry;
         [SerializeField] private GameObject _playerPrefab;
         private readonly Dictionary<uint, NetworkIdentity> _playerObjects = new();
-
+        public NetworkIdentity LocalPlayer { get; private set; }
+        
         // Events
         public Action<NetworkIdentity> OnPlayerSpawn;
 
@@ -112,49 +113,54 @@ namespace Netcode.Runtime.Integration
                 });
             };
 
-            _server.OnServerMessageReceive += NetworkVariableSyncServer;
+            _server.MessageHandlerRegistry.RegisterHandler(
+                new ActionMessageHandler<SyncNetworkVariableMessage>(
+                    NetworkVariableSyncServer, 
+                    Guid.Parse("55DB337C-D5C6-4159-9778-80DF89104DBE")));
 
-            _client.OnReceive += NetworkVariableSyncClient;
-            _client.OnReceive += InstantiateNetworkObjectClientCallback;
-            _client.OnReceive += DestroyNetworkObjectClientCallback;
+            _client.MessageHandlerRegistry.RegisterHandler(
+                new ActionMessageHandler<SyncNetworkVariableMessage>(
+                    NetworkVariableSyncClient, 
+                    Guid.Parse("41898D5A-5700-47AE-8E27-A050FEBF135A")));
+            _client.MessageHandlerRegistry.RegisterHandler(
+                new ActionMessageHandler<InstantiateNetworkObjectMessage>(
+                    InstantiateNetworkObjectClientCallback,
+                    Guid.Parse("2BBF7D2E-5CE3-4D3B-B34E-9953B16DA4FF")));
+            _client.MessageHandlerRegistry.RegisterHandler(
+                new ActionMessageHandler<DestroyNetworkObjectMessage>(
+                    DestroyNetworkObjectClientCallback,
+                    Guid.Parse("118A50C9-A86D-4563-9CD8-6E32C561A6DF")));
+
             _client.OnDisconnect += ReloadSceneOnClientDisconnect;
 
             _client.OnConnect += (id) => { ClientId = id; };
             _client.OnDisconnect += (id) => { ClientId = null; };
         }
 
-        private void NetworkVariableSyncClient(object sender, NetworkMessageRecieveArgs e)
+        private void NetworkVariableSyncClient(SyncNetworkVariableMessage msg, uint? senderClientId)
         {
-            if (e.Message is SyncNetworkVariableMessage msg)
-            {
-                var netId = NetworkIdentity.FindByGuid(msg.NetworkIdentity);
-                if(netId != null) netId.SetNetworkVariableFromServerOnClient(msg);
-            }
+            var netId = NetworkIdentity.FindByGuid(msg.NetworkIdentity);
+            if (netId != null) 
+                netId.SetNetworkVariableFromServerOnClient(msg);
         }
 
-        private void NetworkVariableSyncServer(object sender, ServerMessageReceiveEventArgs e)
+        private void NetworkVariableSyncServer(SyncNetworkVariableMessage msg, uint? senderClientId)
         {
-            if (e.Message is SyncNetworkVariableMessage msg)
-            {
-                var nedId = NetworkIdentity.FindByGuid(msg.NetworkIdentity);
+            var nedId = NetworkIdentity.FindByGuid(msg.NetworkIdentity);
 
-                UnityMainThreadDispatcher.Instance().Enqueue(() =>
-                {
-                    ChannelHandler.Instance.DistributeMessage(nedId, msg, ChannelType.Environment);
-                });
-            }
+            UnityMainThreadDispatcher.Instance().Enqueue(() =>
+            {
+                ChannelHandler.Instance.DistributeMessage(nedId, msg, ChannelType.Environment);
+            });
         }
 
-        private void DestroyNetworkObjectClientCallback(object sender, NetworkMessageRecieveArgs e)
+        private void DestroyNetworkObjectClientCallback(DestroyNetworkObjectMessage msg, uint? senderClientId)
         {
-            if (e.Message is DestroyNetworkObjectMessage msg)
-            {
-                NetworkIdentity netId = NetworkIdentity.FindByGuid(msg.Identity);
+            NetworkIdentity netId = NetworkIdentity.FindByGuid(msg.Identity);
 
-                if (netId != null)
-                {
-                    Destroy(netId.gameObject);
-                }
+            if (netId != null)
+            {
+                Destroy(netId.gameObject);
             }
         }
 
@@ -164,51 +170,49 @@ namespace Netcode.Runtime.Integration
             SceneManager.LoadScene(_menuSceneBuildIndex);
         }
 
-        private void InstantiateNetworkObjectClientCallback(object sender, NetworkMessageRecieveArgs e)
+        private void InstantiateNetworkObjectClientCallback(InstantiateNetworkObjectMessage msg, uint? senderClientId)
         {
-            if (e.Message is InstantiateNetworkObjectMessage msg)
+            NetworkIdentity networkIdentity = null;
+
+            if (IsClient)
             {
-                NetworkIdentity networkIdentity = null;
-
-                if (IsClient)
+                // TODO: Find out why instantiation is multiple times
+                // Try find existing object
+                if (NetworkIdentity.FindByGuid(msg.NetworkIdentityGuid) != null)
                 {
-                    // TODO: Find out why instantiation is multiple times
-                    // Try find existing object
-                    if (NetworkIdentity.FindByGuid(msg.NetworkIdentityGuid) != null)
-                    {
-                        return;
-                    }
-
-                    // Find prefab with id in object registry
-                    GameObject prefab = _objectRegistry[msg.PrefabId];
-
-                    // Instantiate object
-                    GameObject networkObject = Instantiate(prefab, msg.Position, msg.Rotation);
-
-                    // Set the NetworkIdentity
-                    networkIdentity = networkObject.GetComponent<NetworkIdentity>();
-                    networkIdentity.Guid = msg.NetworkIdentityGuid;
-                }
-                else if (IsHost)
-                {
-                    // Find existing object
-                    networkIdentity = NetworkIdentity.FindByGuid(msg.NetworkIdentityGuid);
+                    return;
                 }
 
-                networkIdentity.PrefabId = msg.PrefabId;
-                networkIdentity.name = msg.ObjectName;
+                // Find prefab with id in object registry
+                GameObject prefab = _objectRegistry[msg.PrefabId];
 
-                // Get object with prefab id
-                if (msg.OwnerClientId.HasValue)
+                // Instantiate object
+                GameObject networkObject = Instantiate(prefab, msg.Position, msg.Rotation);
+
+                // Set the NetworkIdentity
+                networkIdentity = networkObject.GetComponent<NetworkIdentity>();
+                networkIdentity.Guid = msg.NetworkIdentityGuid;
+            }
+            else if (IsHost)
+            {
+                // Find existing object
+                networkIdentity = NetworkIdentity.FindByGuid(msg.NetworkIdentityGuid);
+            }
+
+            networkIdentity.PrefabId = msg.PrefabId;
+            networkIdentity.name = msg.ObjectName;
+
+            // Get object with prefab id
+            if (msg.OwnerClientId.HasValue)
+            {
+                // Is local player
+                if (_client.ClientId == msg.OwnerClientId.Value && msg.IsPlayer)
                 {
-                    // Is local player
-                    if (_client.ClientId == msg.OwnerClientId.Value && msg.IsPlayer)
-                    {
-                        networkIdentity.IsLocalPlayer = true;
-                    }
-                    networkIdentity.OwnerClientId = msg.OwnerClientId.Value;
-                    networkIdentity.IsPlayer = msg.IsPlayer;
+                    networkIdentity.IsLocalPlayer = true;
+                    LocalPlayer = networkIdentity;
                 }
+                networkIdentity.OwnerClientId = msg.OwnerClientId.Value;
+                networkIdentity.IsPlayer = msg.IsPlayer;
             }
         }
 
@@ -224,7 +228,6 @@ namespace Netcode.Runtime.Integration
             IsStarted = true;
 
             _server.Start();
-            InvokeRepeating(nameof(ServerTick), 0, 1f / _serverTickRate);
         }
 
         public async void StartClient()
@@ -238,7 +241,6 @@ namespace Netcode.Runtime.Integration
             IsClient = true;
             IsStarted = true;
 
-            InvokeRepeating(nameof(ClientTick), 0, 1f / _clientTickRate);
             await _client.Connect(_hostname, _tcpPort, _udpPort);
         }
 
@@ -254,19 +256,50 @@ namespace Netcode.Runtime.Integration
             IsStarted = true;
 
             _server.Start();
-            InvokeRepeating(nameof(ServerTick), 0, 1f / _serverTickRate);
-            InvokeRepeating(nameof(ClientTick), 0, 1f / _clientTickRate);
             await _client.Connect("127.0.0.1", _tcpPort, _udpPort);
         }
 
-        private void ServerTick()
+        private float _clientTickTimer = 0;
+        private float _serverTickTimer = 0;
+
+        private void Update()
         {
-            _server.OnTick();
+            if (IsStarted)
+            {
+                if (IsServer)
+                {
+                    TryServerTick();
+                }
+                else if (IsClient)
+                {
+                    TryServerTick();
+                }
+                else if (IsHost)
+                {
+                    TryClientTick();
+                    TryServerTick();
+                }
+            }
         }
 
-        private void ClientTick()
+        private void TryServerTick()
         {
-            _client.OnTick();
+            if (_serverTickTimer >= 0)
+            {
+                _server.OnTick();
+                _serverTickTimer = 1f / _serverTickRate;
+            }
+            else _serverTickTimer -= Time.deltaTime;
+        }
+
+        private void TryClientTick()
+        {
+            if (_clientTickTimer >= 0)
+            {
+                _client.OnTick();
+                _clientTickTimer = 1f / _clientTickRate;
+            }
+            else _clientTickTimer -= Time.deltaTime;
         }
 
         public NetworkIdentity InstantiateNetworkObject(GameObject obj, Vector3 position, Quaternion rotation)
@@ -332,6 +365,14 @@ namespace Netcode.Runtime.Integration
                 _server.Clients.Find(c => c.ClientId == clientId)?.SendTcp(message);
             }
         }
+        
+        public void SendTcp<T>(T message) where T : NetworkMessage
+        {
+            if (IsClient || IsHost)
+            {
+                _client.SendTcp(message);
+            }
+        }
 
         public void SendUdp<T>(T message, uint clientId) where T : NetworkMessage
         {
@@ -344,5 +385,16 @@ namespace Netcode.Runtime.Integration
                 _server.Clients.Find(c => c.ClientId == clientId)?.SendUdp(message);
             }
         }
+
+        public void SendUdp<T>(T message) where T : NetworkMessage
+        {
+            if (IsClient || IsHost)
+            {
+                _client.SendUdp(message);
+            }
+        }
+
+        public MessageHandlerRegistry ServerMessageHandlerRegistry => _server.MessageHandlerRegistry;
+        public MessageHandlerRegistry ClientMessageHandlerRegistry => _client.MessageHandlerRegistry;
     }
 }

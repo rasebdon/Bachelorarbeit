@@ -87,7 +87,7 @@ namespace Netcode.Runtime.Behaviour
                         NetworkHandler.Instance.SendTcp(dnomToPlayer, OwnerClientId);
                     }
                 }
-
+                
                 if (msg is InstantiateNetworkObjectMessage inomToPlayerFromObject)
                 {
                     // Also sync this object to the player
