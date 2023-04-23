@@ -35,11 +35,11 @@ namespace Netcode.Channeling
                 switch (channelType)
                 {
                     case ChannelType.Environment:
-                        zoneData.CurrentZone.Publish(message, channelType, true);
+                        zoneData.CurrentZone.Publish(message, channelType, identity.OwnerClientId, true);
                         break;
                     case ChannelType.Interaction:
                         foreach (var zone in zoneData.Zones)
-                            zone.Publish(message, channelType, false);
+                            zone.Publish(message, channelType, identity.OwnerClientId, false);
                         break;
                 }
             }

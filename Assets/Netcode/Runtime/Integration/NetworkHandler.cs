@@ -50,7 +50,7 @@ namespace Netcode.Runtime.Integration
         [SerializeField] private List<GameObject> _objectRegistry;
         [SerializeField] private GameObject _playerPrefab;
         private readonly Dictionary<uint, NetworkIdentity> _playerObjects = new();
-        public NetworkIdentity LocalPlayer { get; private set; }
+        public NetworkIdentity LocalPlayer { get; set; }
         
         // Events
         public Action<NetworkIdentity> OnPlayerSpawn;
@@ -177,7 +177,6 @@ namespace Netcode.Runtime.Integration
 
             if (IsClient)
             {
-                // TODO: Find out why instantiation is multiple times
                 // Try find existing object
                 if (NetworkIdentity.FindByGuid(msg.NetworkIdentityGuid) != null)
                 {

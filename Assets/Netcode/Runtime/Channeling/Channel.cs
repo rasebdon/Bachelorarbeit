@@ -12,7 +12,7 @@ namespace Netcode.Channeling
         /// <summary>
         /// Distribution list to players
         /// </summary>
-        public Action<NetworkMessage> OnDistribute { get; private set; }
+        public Action<NetworkMessage, uint?> OnDistribute { get; private set; }
 
         public ChannelType Type { get; }
 
@@ -21,9 +21,9 @@ namespace Netcode.Channeling
             Type = type;
         }
 
-        public void Publish<T>(T message) where T : NetworkMessage
+        public void Publish<T>(T message, uint? clientId) where T : NetworkMessage
         {
-            OnDistribute?.Invoke(message);
+            OnDistribute?.Invoke(message, clientId);
         }
 
         /// <summary>
@@ -32,7 +32,7 @@ namespace Netcode.Channeling
         /// <param name="netId"></param>
         public void Subscribe(NetworkIdentity netId)
         {
-            OnDistribute += netId.OnReceiveMessage;
+            OnDistribute += netId.OnReceiveMessage.HandleMessage;
         }
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace Netcode.Channeling
         /// <param name="netId"></param>
         public void Unsubscribe(NetworkIdentity netId)
         {
-            OnDistribute -= netId.OnReceiveMessage;
+            OnDistribute -= netId.OnReceiveMessage.HandleMessage;
         }
     }
 }

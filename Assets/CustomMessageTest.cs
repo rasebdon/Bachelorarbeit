@@ -39,8 +39,13 @@ public class CustomMessageTest : NetworkBehaviour
             NetworkHandler.Instance.ClientMessageHandlerRegistry.RegisterMessageHandlerIfNotExists(clientMessageHandler);
         }
 
-        if(NetworkHandler.Instance.LocalPlayer != null)
-            NetworkHandler.Instance.LocalPlayer.OnReceiveMessage += ForwardToClient;
+        if(IsServer || IsHost)
+        {
+            NetworkHandler.Instance.LocalPlayer.OnReceiveMessage.RegisterHandler(
+                new ActionMessageHandler<CustomNetworkMessage>(
+                    ForwardToClient,
+                    Guid.Parse("F6F32A4D-7664-40AA-9E3E-CCAD37BF2BEF")));
+        }
     }
 
     private void DistributeToChannel(CustomNetworkMessage msg, uint? clientId)
@@ -48,10 +53,9 @@ public class CustomMessageTest : NetworkBehaviour
         ChannelHandler.Instance.DistributeMessage(Identity, msg, ChannelType.Environment);
     }
 
-    private void ForwardToClient(NetworkMessage msg)
+    private void ForwardToClient(CustomNetworkMessage msg, uint? clientId)
     {
-        if (msg is CustomNetworkMessage msg2)
-            NetworkHandler.Instance.SendTcpToClient(msg2, NetworkHandler.Instance.LocalPlayer.OwnerClientId);
+        NetworkHandler.Instance.SendTcpToClient(msg, NetworkHandler.Instance.LocalPlayer.OwnerClientId);
     }
 
     private void StopTimer(CustomNetworkMessage msg, uint? senderClientId)

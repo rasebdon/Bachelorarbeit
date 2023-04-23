@@ -28,21 +28,21 @@ namespace Netcode.Runtime.Channeling
             InteractionChannel = new(ChannelType.Interaction);
         }
 
-        public void Publish<T>(T message, ChannelType channel, bool publishToNeighbors = true) where T : NetworkMessage
+        public void Publish<T>(T message, ChannelType channel, uint? clientId, bool publishToNeighbors = true) where T : NetworkMessage
         {
             switch (channel)
             {
                 case ChannelType.Interaction:
                     // Publish to own channel
-                    InteractionChannel.Publish(message);
+                    InteractionChannel.Publish(message, clientId);
                     break;
                 case ChannelType.Environment:
                     // Publish to own channel
-                    EnvironmentChannel.Publish(message);
+                    EnvironmentChannel.Publish(message, clientId);
                     // Publish to neighbors
                     if (publishToNeighbors)
                     {
-                        Neighbors.ForEach(ch => ch.Publish(message, ChannelType.Environment, false));
+                        Neighbors.ForEach(ch => ch.Publish(message, ChannelType.Environment, clientId, false));
                     }
                     break;
                 default:

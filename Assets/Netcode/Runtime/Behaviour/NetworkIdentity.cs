@@ -37,7 +37,7 @@ namespace Netcode.Runtime.Behaviour
         /// <summary>
         /// Gets invoked when this network identity receives a message
         /// </summary>
-        public Action<NetworkMessage> OnReceiveMessage;
+        public MessageHandlerRegistry OnReceiveMessage { get; } = new();
 
         public bool IsSpawned { get; private set; }
 
@@ -72,58 +72,68 @@ namespace Netcode.Runtime.Behaviour
                 });
             }
 
-            OnReceiveMessage += (msg) =>
+            if(NetworkHandler.Instance.IsServer || NetworkHandler.Instance.IsHost)
             {
-                if (IsPlayer)
-                {
-                    if (msg is InstantiateNetworkObjectMessage inomToPlayer)
-                    {
-                        // Send message from server to client
-                        NetworkHandler.Instance.SendTcpToClient(inomToPlayer, OwnerClientId);
-                    }
-                    else if (msg is DestroyNetworkObjectMessage dnomToPlayer)
-                    {
-                        // Send message from server to client
-                        NetworkHandler.Instance.SendTcpToClient(dnomToPlayer, OwnerClientId);
-                    }
-                }
-                
-                if (msg is InstantiateNetworkObjectMessage inomToPlayerFromObject)
-                {
-                    // Also sync this object to the player
-                    if (inomToPlayerFromObject.OwnerClientId.HasValue &&
-                        inomToPlayerFromObject.OwnerClientId != this.OwnerClientId)
-                    {
-                        var thisObjectSync = new InstantiateNetworkObjectMessage(
-                        name, PrefabId, Guid, IsPlayer ? OwnerClientId : null, IsPlayer, transform.rotation, transform.position);
-
-                        NetworkHandler.Instance.SendTcpToClient(thisObjectSync, inomToPlayerFromObject.OwnerClientId.Value);
-                    }
-                }
-
-                // Network Variable Handling
-                if (msg is SyncNetworkVariableMessage syncNetworkVariableMessage)
-                {
-                    // Meant for this identity (on server -> set value)
-                    if (syncNetworkVariableMessage.NetworkIdentity == Guid)
-                    {
-                        if (_networkVariables.TryGetValue(syncNetworkVariableMessage.VariableHash, out var netVar))
-                        {
-                            var value = NetworkHandler.Instance.Serializer.Deserialize(
-                                syncNetworkVariableMessage.Value,
-                                netVar.Value.GetType());
-                            netVar.SetValueFromNetworkMessage(value);
-                        }
-                    }
-
-                    // Send to client if this has a client
-                    if (IsPlayer)
-                    {
-                        NetworkHandler.Instance.SendTcpToClient(syncNetworkVariableMessage, OwnerClientId);
-                    }
-                }
-            };
+                OnReceiveMessage.RegisterHandler(
+                    new ActionMessageHandler<InstantiateNetworkObjectMessage>(
+                        InstantiateNetworkObjectMessageCallback,
+                        Guid.Parse("8E5A2FFA-4B27-4E3E-9DE5-F2B0C6D7A976")));
+                OnReceiveMessage.RegisterHandler(
+                    new ActionMessageHandler<DestroyNetworkObjectMessage>(
+                        DestroyNetworkObjectMessageCallback,
+                        Guid.Parse("20689427-5ECC-460A-A5CE-FADD7BDE14B3")));
+                OnReceiveMessage.RegisterHandler(
+                    new ActionMessageHandler<SyncNetworkVariableMessage>(
+                        SyncNetworkVariableMessageCallback,
+                        Guid.Parse("DA8F452A-8A6B-48CD-BAF3-F302442DCEA4")));
+            }
         }
+
+        private void SyncNetworkVariableMessageCallback(SyncNetworkVariableMessage msg, uint? clientId)
+        {
+            // Meant for this identity (on server -> set value)
+            if (msg.NetworkIdentity == Guid)
+            {
+                if (_networkVariables.TryGetValue(msg.VariableHash, out var netVar))
+                {
+                    var value = NetworkHandler.Instance.Serializer.Deserialize(
+                        msg.Value,
+                        netVar.Value.GetType());
+                    netVar.SetValueFromNetworkMessage(value);
+                }
+            }
+
+            // Send to client if this has a client
+            if (IsPlayer)
+            {
+                NetworkHandler.Instance.SendTcpToClient(msg, OwnerClientId);
+            }
+        }
+
+        private void DestroyNetworkObjectMessageCallback(DestroyNetworkObjectMessage msg, uint? clientId)
+        {
+            if (IsPlayer)
+                NetworkHandler.Instance.SendTcpToClient(msg, OwnerClientId);
+        }
+
+        private void InstantiateNetworkObjectMessageCallback(InstantiateNetworkObjectMessage msg, uint? clientId)
+        {
+            if (IsPlayer)
+            {
+                // Send message from server to client
+                NetworkHandler.Instance.SendTcpToClient(msg, OwnerClientId);
+            }
+
+            // Also sync this object to the player
+            if (msg.OwnerClientId.HasValue &&
+                msg.OwnerClientId != this.OwnerClientId)
+            {
+                var thisObjectSync = new InstantiateNetworkObjectMessage(
+                name, PrefabId, Guid, IsPlayer ? OwnerClientId : null, IsPlayer, transform.rotation, transform.position);
+
+                NetworkHandler.Instance.SendTcpToClient(thisObjectSync, msg.OwnerClientId.Value);
+            }
+        } 
 
         /// <summary>
         /// Network identity registers itself on the server after the physics update
@@ -146,6 +156,8 @@ namespace Netcode.Runtime.Behaviour
                             name, PrefabId, Guid, IsPlayer ? OwnerClientId : null, IsPlayer, transform.rotation, transform.position),
                         ChannelType.Environment);
                     IsLocalPlayer = IsPlayer && OwnerClientId == NetworkHandler.Instance.ClientId;
+                    if(IsLocalPlayer) 
+                        NetworkHandler.Instance.LocalPlayer = this;
                     IsSpawned = true;
                 }
             }
