@@ -74,6 +74,7 @@ public class NetworkVariableSpeedTest : NetworkBehaviour
 
                     return;
                 }
+                Debug.Log("Sending update");
                 timer = resetTime;
                 stopwatch = Stopwatch.StartNew();
                 netVar.SetValue(netVar.GetValue() + 1);

@@ -22,7 +22,7 @@ public class CustomMessageTest : NetworkBehaviour
 
     public override void NetworkStart()
     {
-        var serverMessageHandler = new ActionMessageHandler<CustomNetworkMessage>(ForwardToClient, Guid.Parse("3F7D9B00-4F56-4F8D-B8D3-7C0173C452A5"));
+        var serverMessageHandler = new ActionMessageHandler<CustomNetworkMessage>(DistributeToChannel, Guid.Parse("3F7D9B00-4F56-4F8D-B8D3-7C0173C452A5"));
         var clientMessageHandler = new ActionMessageHandler<CustomNetworkMessage>(StopTimer, Guid.Parse("4F7D9B00-4F56-4F8D-B8D3-7C0173C452A5"));
 
         if (IsServer)
@@ -38,11 +38,20 @@ public class CustomMessageTest : NetworkBehaviour
             NetworkHandler.Instance.ServerMessageHandlerRegistry.RegisterMessageHandlerIfNotExists(serverMessageHandler);
             NetworkHandler.Instance.ClientMessageHandlerRegistry.RegisterMessageHandlerIfNotExists(clientMessageHandler);
         }
+
+        if(NetworkHandler.Instance.LocalPlayer != null)
+            NetworkHandler.Instance.LocalPlayer.OnReceiveMessage += ForwardToClient;
     }
 
-    private void ForwardToClient(CustomNetworkMessage msg, uint? clientId)
+    private void DistributeToChannel(CustomNetworkMessage msg, uint? clientId)
     {
-        NetworkHandler.Instance.SendTcp(msg, clientId.Value);
+        ChannelHandler.Instance.DistributeMessage(Identity, msg, ChannelType.Environment);
+    }
+
+    private void ForwardToClient(NetworkMessage msg)
+    {
+        if (msg is CustomNetworkMessage msg2)
+            NetworkHandler.Instance.SendTcpToClient(msg2, NetworkHandler.Instance.LocalPlayer.OwnerClientId);
     }
 
     private void StopTimer(CustomNetworkMessage msg, uint? senderClientId)
@@ -71,7 +80,7 @@ public class CustomMessageTest : NetworkBehaviour
                 lastSentMessageGuid = Guid.NewGuid();
 
                 _stopwatch = Stopwatch.StartNew();
-                NetworkHandler.Instance.SendTcp(new CustomNetworkMessage(lastSentMessageGuid));
+                NetworkHandler.Instance.SendTcpToServer(new CustomNetworkMessage(lastSentMessageGuid));
                 timer = resetTime;
             }
         }

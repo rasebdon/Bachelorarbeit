@@ -140,6 +140,7 @@ namespace Netcode.Runtime.Integration
         private void NetworkVariableSyncClient(SyncNetworkVariableMessage msg, uint? senderClientId)
         {
             var netId = NetworkIdentity.FindByGuid(msg.NetworkIdentity);
+
             if (netId != null) 
                 netId.SetNetworkVariableFromServerOnClient(msg);
         }
@@ -272,7 +273,7 @@ namespace Netcode.Runtime.Integration
                 }
                 else if (IsClient)
                 {
-                    TryServerTick();
+                    TryClientTick();
                 }
                 else if (IsHost)
                 {
@@ -354,40 +355,56 @@ namespace Netcode.Runtime.Integration
             _client.Dispose();
         }
 
-        public void SendTcp<T>(T message, uint clientId) where T : NetworkMessage
+        public void SendTcpToClient<T>(T message, uint clientId) where T : NetworkMessage
         {
             if (IsClient)
             {
-                _client.SendTcp(message);
+                Debug.LogError("Cannot send to client on the client!");
+                return;
             }
-            else if (IsServer || IsHost)
+            
+            if (IsServer || IsHost)
             {
                 _server.Clients.Find(c => c.ClientId == clientId)?.SendTcp(message);
             }
         }
         
-        public void SendTcp<T>(T message) where T : NetworkMessage
+        public void SendTcpToServer<T>(T message) where T : NetworkMessage
         {
+            if (IsServer)
+            {
+                Debug.LogError("Cannot send to server on the server!");
+                return;
+            }
+
             if (IsClient || IsHost)
             {
                 _client.SendTcp(message);
             }
         }
 
-        public void SendUdp<T>(T message, uint clientId) where T : NetworkMessage
+        public void SendUdpToClient<T>(T message, uint clientId) where T : NetworkMessage
         {
             if (IsClient)
             {
-                _client.SendUdp(message);
+                Debug.LogError("Cannot send to client on the client!");
+                return;
             }
-            else if (IsServer || IsHost)
+
+            if (IsServer || IsHost)
             {
                 _server.Clients.Find(c => c.ClientId == clientId)?.SendUdp(message);
             }
         }
 
-        public void SendUdp<T>(T message) where T : NetworkMessage
+        public void SendUdpToServer<T>(T message) where T : NetworkMessage
         {
+            if (IsServer)
+            {
+                Debug.LogError("Cannot send to server on the server!");
+                return;
+            }
+
             if (IsClient || IsHost)
             {
                 _client.SendUdp(message);

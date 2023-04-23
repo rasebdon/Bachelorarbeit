@@ -60,9 +60,9 @@ namespace Netcode.Runtime.Behaviour
                 {
                     // Send message to manipulate the variable
                     if(IsReliable)
-                        NetworkHandler.Instance.SendTcp(syncMessage, 0);
+                        NetworkHandler.Instance.SendTcpToServer(syncMessage);
                     else
-                        NetworkHandler.Instance.SendUdp(syncMessage, 0);
+                        NetworkHandler.Instance.SendUdpToServer(syncMessage);
                 }
                 else
                 {

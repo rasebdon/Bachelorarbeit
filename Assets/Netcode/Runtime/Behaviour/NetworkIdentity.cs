@@ -79,12 +79,12 @@ namespace Netcode.Runtime.Behaviour
                     if (msg is InstantiateNetworkObjectMessage inomToPlayer)
                     {
                         // Send message from server to client
-                        NetworkHandler.Instance.SendTcp(inomToPlayer, OwnerClientId);
+                        NetworkHandler.Instance.SendTcpToClient(inomToPlayer, OwnerClientId);
                     }
                     else if (msg is DestroyNetworkObjectMessage dnomToPlayer)
                     {
                         // Send message from server to client
-                        NetworkHandler.Instance.SendTcp(dnomToPlayer, OwnerClientId);
+                        NetworkHandler.Instance.SendTcpToClient(dnomToPlayer, OwnerClientId);
                     }
                 }
                 
@@ -97,7 +97,7 @@ namespace Netcode.Runtime.Behaviour
                         var thisObjectSync = new InstantiateNetworkObjectMessage(
                         name, PrefabId, Guid, IsPlayer ? OwnerClientId : null, IsPlayer, transform.rotation, transform.position);
 
-                        NetworkHandler.Instance.SendTcp(thisObjectSync, inomToPlayerFromObject.OwnerClientId.Value);
+                        NetworkHandler.Instance.SendTcpToClient(thisObjectSync, inomToPlayerFromObject.OwnerClientId.Value);
                     }
                 }
 
@@ -119,7 +119,7 @@ namespace Netcode.Runtime.Behaviour
                     // Send to client if this has a client
                     if (IsPlayer)
                     {
-                        NetworkHandler.Instance.SendTcp(syncNetworkVariableMessage, OwnerClientId);
+                        NetworkHandler.Instance.SendTcpToClient(syncNetworkVariableMessage, OwnerClientId);
                     }
                 }
             };
@@ -145,6 +145,7 @@ namespace Netcode.Runtime.Behaviour
                         new InstantiateNetworkObjectMessage(
                             name, PrefabId, Guid, IsPlayer ? OwnerClientId : null, IsPlayer, transform.rotation, transform.position),
                         ChannelType.Environment);
+                    IsLocalPlayer = IsPlayer && OwnerClientId == NetworkHandler.Instance.ClientId;
                     IsSpawned = true;
                 }
             }
