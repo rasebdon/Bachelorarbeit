@@ -53,6 +53,8 @@ namespace Netcode.Runtime.Communication.Common
 
         public Dictionary<Type, List<Action<NetworkMessage>>> OnMessageSent { get; set; } = new();
 
+        public IPAddress Address => ((IPEndPoint)_tcpClient.Client.RemoteEndPoint).Address;
+
 
         public NetworkClientBase(
             uint clientId,

@@ -3,6 +3,7 @@ using Netcode.Runtime.Communication.Common.Logging;
 using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Communication.Common.Security;
 using System;
+using System.Net;
 using System.Net.Sockets;
 
 namespace Netcode.Runtime.Communication.Server

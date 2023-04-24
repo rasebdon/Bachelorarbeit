@@ -64,7 +64,7 @@ public class CustomMessageTest : NetworkBehaviour
             return;
 
         _stopwatch.Stop();
-        UnityEngine.Debug.Log($"RTT: {_stopwatch.ElapsedMilliseconds:0.00000} ms");
+        UnityEngine.Debug.Log($"RTT: {_stopwatch.ElapsedMilliseconds} ms");
     }
 
     private float resetTime = 1f;

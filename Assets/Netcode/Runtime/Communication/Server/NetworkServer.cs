@@ -199,11 +199,13 @@ namespace Netcode.Runtime.Communication.Server
 
                 if (data != null && data.Length > 0)
                 {
-                    NetworkServerClient client = Clients.Find(c => c.UdpIsConfigured && c.UdpEndPoint.Address == remoteEp.Address);
+                    NetworkServerClient client = Clients.Find(c => c.UdpEndPoint?.Address?.MapToIPv4()?.ToString() == remoteEp.Address.MapToIPv4().ToString());
 
                     if (client == null)
                     {
                         _logger.LogInfo($"Could not find client with udp address {remoteEp}, registering client...");
+
+                        client = Clients.Find(c => c.Address.MapToIPv4().ToString() == remoteEp.Address.MapToIPv4().ToString());
 
                         client.UdpEndPoint = remoteEp;
                         client.UdpIsConfigured = true;

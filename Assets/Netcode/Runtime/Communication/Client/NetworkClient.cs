@@ -22,6 +22,7 @@ namespace Netcode.Runtime.Communication.Client
                 new RSAEncryption(),
                 logger)
         {
+            UdpIsConfigured = true;
             MessageHandlerRegistry.RegisterHandler(new ActionMessageHandler<ConnectionInfoMessage>(OnConnectionInfoMessageReceive, Guid.Parse("DE17C09E-B072-41E5-B3EE-6D531A63077C")));
         }
 
