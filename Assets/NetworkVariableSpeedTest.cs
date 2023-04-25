@@ -8,7 +8,7 @@ using Debug = UnityEngine.Debug;
 
 public class NetworkVariableSpeedTest : NetworkBehaviour
 {
-    public NetworkVariable<int> netVar = new(10, ChannelType.Environment, false);
+    public NetworkVariable<int> netVar = new(10, ChannelType.Environment, true);
 
     public override void NetworkStart()
     {

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace Netcode.Runtime.Communication.Server
 {
@@ -90,7 +91,8 @@ namespace Netcode.Runtime.Communication.Server
             {
                 // Start listening on the udp port
                 _udpClient = new UdpClient(_udpEndpoint);
-                _udpClient.BeginReceive(OnUdpReceive, null);
+                //_udpClient.BeginReceive(OnUdpReceive, null);
+                ReceiveUdpAsync();
 
                 // Start listening on the tcp port
                 _tcpServer.Start();
@@ -99,6 +101,35 @@ namespace Netcode.Runtime.Communication.Server
                 _stopped = false;
 
                 _logger.LogInfo("Started");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex);
+            }
+        }
+
+        public async void ReceiveUdpAsync()
+        {
+            try
+            {
+                var result = await _udpClient.ReceiveAsync();
+                IPEndPoint remoteEp = result.RemoteEndPoint;
+                byte[] data = result.Buffer;
+
+                if (data != null && data.Length > 0)
+                {
+                    NetworkServerClient client = GetClientByRemoteEndPoint(remoteEp);
+                    client.ReceiveDatagramAsync(data);
+                }
+
+                ReceiveUdpAsync();
+            }
+            catch (ObjectDisposedException ex)
+            {
+                if (!_stopped)
+                {
+                    _logger.LogError(ex);
+                }
             }
             catch (Exception ex)
             {
@@ -193,14 +224,13 @@ namespace Netcode.Runtime.Communication.Server
                 IPEndPoint remoteEp = new(IPAddress.Any, _udpEndpoint.Port);
 
                 byte[] data = _udpClient.EndReceive(result, ref remoteEp);
+                _udpClient.BeginReceive(OnUdpReceive, null);
 
                 if (data != null && data.Length > 0)
                 {
                     NetworkServerClient client = GetClientByRemoteEndPoint(remoteEp);
                     client.ReceiveDatagramAsync(data);
                 }
-
-                _udpClient.BeginReceive(OnUdpReceive, null);
             }
             catch (ObjectDisposedException ex)
             {
