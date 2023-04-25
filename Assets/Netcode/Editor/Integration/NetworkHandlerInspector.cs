@@ -88,8 +88,7 @@ namespace Netcode.Editor.Integration
             EditorGUILayout.LabelField("Configuration", EditorStyles.boldLabel);
 
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_hostname"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_tcpPort"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_udpPort"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_port"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_maxClients"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_serverTickRate"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("_clientTickRate"));

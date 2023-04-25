@@ -33,8 +33,8 @@ namespace Netcode.Runtime.Communication.Common
         /// Returns wheter the udp client is already set up or not
         /// </summary>
         public bool UdpIsConfigured { get; set; }
-        public IPEndPoint UdpEndPoint { get; set; }
-        protected readonly UdpClient _udpClient;
+
+        protected UdpClient _udpClient;
 
         // Message Protocol Variables
         protected IPipeline _pipeline;
@@ -53,13 +53,13 @@ namespace Netcode.Runtime.Communication.Common
 
         public Dictionary<Type, List<Action<NetworkMessage>>> OnMessageSent { get; set; } = new();
 
-        public IPAddress Address => ((IPEndPoint)_tcpClient.Client.RemoteEndPoint).Address;
+        public IPEndPoint RemoteEndPoint => (IPEndPoint)_tcpClient.Client.RemoteEndPoint;
+        public IPEndPoint LocalEndPoint => (IPEndPoint)_tcpClient.Client.LocalEndPoint;
 
 
         public NetworkClientBase(
             uint clientId,
             TcpClient client,
-            UdpClient udpClient,
             IAsymmetricEncryption asymmetricEncryption,
             ILogger<T> logger)
         {
@@ -69,7 +69,6 @@ namespace Netcode.Runtime.Communication.Common
             _asymmetricEncryption = asymmetricEncryption;
             ResetPipeline();
             _tcpClient = client;
-            _udpClient = udpClient;
             _logger = logger;
             Disposed = false;
         }
@@ -108,7 +107,6 @@ namespace Netcode.Runtime.Communication.Common
                 }
                 TcpMessageQueue_Out.Add(message);
             }
-
         }
 
         /// <summary>
@@ -140,7 +138,7 @@ namespace Netcode.Runtime.Communication.Common
         {
             try
             {
-                await ReceiveMessage(_tcpClient.GetStream());
+                await ReceiveMessage(_tcpClient.GetStream(), true);
 
                 BeginReceiveTcpAsync();
             }
@@ -161,7 +159,7 @@ namespace Netcode.Runtime.Communication.Common
         {
             try
             {
-                await ReceiveMessage(new MemoryStream(data));
+                await ReceiveMessage(new MemoryStream(data), false);
             }
             catch (ObjectDisposedException ex)
             {
@@ -182,7 +180,7 @@ namespace Netcode.Runtime.Communication.Common
         /// </summary>
         /// <param name="stream"></param>
         /// <returns></returns>
-        protected async Task ReceiveMessage(Stream stream)
+        protected async Task ReceiveMessage(Stream stream, bool reliable)
         {
             try
             {
@@ -195,10 +193,20 @@ namespace Netcode.Runtime.Communication.Common
                 for (int i = 0; i < input.Messages.Length; i++)
                 {
                     var message = input.Messages[i];
+                    message.Reliable = reliable;
                     if (message != null)
                         MessageQueue_In.Enqueue(message);
                 }
-
+            }
+            catch (InvalidMACException)
+            {
+                _logger.LogInfo("Invalid MAC received, dropping packet");
+            }
+            catch (IndexOutOfRangeException)
+            {
+                _logger.LogInfo($"Pipeline error, closing remote connection for client {ClientId}");
+                Dispose();
+                return;
             }
             catch (Exception ex)
             {
@@ -248,6 +256,7 @@ namespace Netcode.Runtime.Communication.Common
                     for (int i = 0; i < output.Messages.Length; i++)
                     {
                         var message = output.Messages[i];
+                        message.Reliable = true;
                         if (OnMessageSent.TryGetValue(message.GetType(), out var action) && action != null)
                             action.ForEach(a => a?.Invoke(message));
                     }
@@ -256,7 +265,7 @@ namespace Netcode.Runtime.Communication.Common
                 }
             }
 
-            if (UdpMessageQueue_Out.Count > 0 && UdpIsConfigured)
+            if (UdpMessageQueue_Out.Count > 0)
             {
                 lock (_udpWriteLock)
                 {
@@ -266,11 +275,12 @@ namespace Netcode.Runtime.Communication.Common
                         OutputData = new(),
                     };
                     var datagramm = _pipeline.RunPipeline(output).OutputData.ToArray();
-                    _udpClient.Send(datagramm, datagramm.Length, UdpEndPoint);
+                    _udpClient.SendAsync(datagramm, datagramm.Length, RemoteEndPoint);
 
                     for (int i = 0; i < output.Messages.Length; i++)
                     {
                         var message = output.Messages[i];
+                        message.Reliable = false;
                         if (OnMessageSent.TryGetValue(message.GetType(), out var action) && action != null)
                             action.ForEach(a => a?.Invoke(message));
                     }

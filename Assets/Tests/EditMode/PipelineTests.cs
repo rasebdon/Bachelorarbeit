@@ -1,3 +1,4 @@
+using Netcode.Channeling;
 using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Communication.Common.Pipeline;
 using Netcode.Runtime.Communication.Common.Security;
@@ -28,7 +29,7 @@ public class PipelineTests
         var messages = new NetworkMessage[]
         {
                 new DestroyNetworkObjectMessage(Guid.NewGuid()),
-                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, 412, Guid.NewGuid())
+                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, 412, Guid.NewGuid(), ChannelType.Environment)
         };
         var output = new PipelineOutputObject
         {
@@ -59,7 +60,7 @@ public class PipelineTests
         var messages = new NetworkMessage[]
         {
                 new DestroyNetworkObjectMessage(Guid.NewGuid()),
-                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, 412, Guid.NewGuid())
+                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, 412, Guid.NewGuid(), ChannelType.Environment)
         };
         var output = new PipelineOutputObject
         {
@@ -90,7 +91,7 @@ public class PipelineTests
         var messages = new NetworkMessage[]
         {
                 new DestroyNetworkObjectMessage(Guid.NewGuid()),
-                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, 412, Guid.NewGuid())
+                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, 412, Guid.NewGuid(), ChannelType.Environment)
         };
         var output = new PipelineOutputObject
         {
@@ -122,7 +123,7 @@ public class PipelineTests
         var messages = new NetworkMessage[]
         {
                 new DestroyNetworkObjectMessage(Guid.NewGuid()),
-                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, 412, Guid.NewGuid())
+                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, 412, Guid.NewGuid(), ChannelType.Environment)
         };
         var output = new PipelineOutputObject
         {

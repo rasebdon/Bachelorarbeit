@@ -22,8 +22,7 @@ namespace Netcode.Runtime.Integration
 
         // Configuration
         [SerializeField] private string _hostname = "127.0.0.1";
-        [SerializeField] private ushort _tcpPort = 27600;
-        [SerializeField] private ushort _udpPort = 27600;
+        [SerializeField] private ushort _port = 27600;
         [SerializeField] private ushort _maxClients = 10;
         [SerializeField] private LogLevel _logLevel = LogLevel.Error;
         [SerializeField] private int _menuSceneBuildIndex;
@@ -83,7 +82,7 @@ namespace Netcode.Runtime.Integration
             ILoggerFactory loggerFactory = new UnityLoggerFactory(_logLevel);
 
             // Setup server
-            _server = new(_tcpPort, _udpPort, _maxClients, loggerFactory);
+            _server = new(_port, _maxClients, loggerFactory);
 
             // Setup client
             _client = new(loggerFactory.CreateLogger<NetworkClient>());
@@ -151,7 +150,7 @@ namespace Netcode.Runtime.Integration
 
             UnityMainThreadDispatcher.Instance().Enqueue(() =>
             {
-                ChannelHandler.Instance.DistributeMessage(nedId, msg, ChannelType.Environment);
+                ChannelHandler.Instance.DistributeMessage(nedId, msg, msg.ChannelType);
             });
         }
 
@@ -241,7 +240,7 @@ namespace Netcode.Runtime.Integration
             IsClient = true;
             IsStarted = true;
 
-            await _client.Connect(_hostname, _tcpPort, _udpPort);
+            await _client.Connect(_hostname, _port);
         }
 
         public async void StartHost()
@@ -256,7 +255,7 @@ namespace Netcode.Runtime.Integration
             IsStarted = true;
 
             _server.Start();
-            await _client.Connect("127.0.0.1", _tcpPort, _udpPort);
+            await _client.Connect("127.0.0.1", _port);
         }
 
         private float _clientTickTimer = 0;

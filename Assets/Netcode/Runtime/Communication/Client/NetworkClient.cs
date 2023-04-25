@@ -18,7 +18,6 @@ namespace Netcode.Runtime.Communication.Client
             base(
                 0,
                 new TcpClient(),
-                new UdpClient(AddressFamily.InterNetwork),
                 new RSAEncryption(),
                 logger)
         {
@@ -26,18 +25,18 @@ namespace Netcode.Runtime.Communication.Client
             MessageHandlerRegistry.RegisterHandler(new ActionMessageHandler<ConnectionInfoMessage>(OnConnectionInfoMessageReceive, Guid.Parse("DE17C09E-B072-41E5-B3EE-6D531A63077C")));
         }
 
-        public async Task Connect(string hostname, ushort tcpPort, ushort udpPort)
+        public async Task Connect(string hostname, ushort port)
         {
             ResetPipeline();
 
             try
             {
-                await _tcpClient.ConnectAsync(hostname, tcpPort);
+                await _tcpClient.ConnectAsync(hostname, port);
             }
             catch (SocketException)
             {
                 _logger.LogWarning("Connection to server failed, retrying...");
-                await Connect(hostname, tcpPort, udpPort);
+                await Connect(hostname, port);
                 return;
             }
             catch (Exception ex)
@@ -45,7 +44,7 @@ namespace Netcode.Runtime.Communication.Client
                 throw ex;
             }
 
-            UdpEndPoint = new IPEndPoint(IPAddress.Parse(hostname), udpPort);
+            _udpClient = new UdpClient((IPEndPoint)_tcpClient.Client.LocalEndPoint);
 
             BeginReceiveTcpAsync();
             BeginReceiveUdpAsync();
@@ -86,7 +85,6 @@ namespace Netcode.Runtime.Communication.Client
                 encryptedKey,
                 encryptedMACKey);
 
-
             if (!OnMessageSent.ContainsKey(typeof(EncryptionInfoMessage)))
                 OnMessageSent.Add(typeof(EncryptionInfoMessage), new List<Action<NetworkMessage>>());
 
@@ -99,7 +97,6 @@ namespace Netcode.Runtime.Communication.Client
         {
             _pipeline.AddEncryption(_encryption);
             _pipeline.AddMAC(_macHandler);
-            SendUdp(new RegisterUdpMessage());
 
             OnConnect?.Invoke(ClientId);
         }

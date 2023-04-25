@@ -26,7 +26,10 @@ namespace Netcode.Runtime.Behaviour
 
         public NetworkVariableReadPermission ReadPermission { get; }
         public NetworkVariableWritePermission WritePermission { get; }
-        public bool IsReliable { get; set; }
+        public bool IsReliable { get; }
+        public ChannelType ChannelType { get;}
+
+        private DateTime LastSet { get; set; } = DateTime.MinValue;
 
         private object _value;
 
@@ -54,7 +57,7 @@ namespace Netcode.Runtime.Behaviour
                 }
 
                 byte[] data = NetworkHandler.Instance.Serializer.Serialize(value);
-                var syncMessage = new SyncNetworkVariableMessage(data, Hash, _networkBehaviour.Identity.Guid);
+                var syncMessage = new SyncNetworkVariableMessage(data, Hash, _networkBehaviour.Identity.Guid, ChannelType);
 
                 if (_networkBehaviour.IsClient && ClientCanWrite(_networkBehaviour.LocalClientId))
                 {
@@ -67,23 +70,23 @@ namespace Netcode.Runtime.Behaviour
                 else
                 {
                     // Send sync message to clients
-                    if(IsReliable)
-                        ChannelHandler.Instance.DistributeMessage(_networkBehaviour.Identity, syncMessage, ChannelType.Environment);
-                    else 
-                        ChannelHandler.Instance.DistributeMessage(_networkBehaviour.Identity, syncMessage, ChannelType.Interaction);
+                    ChannelHandler.Instance.DistributeMessage(_networkBehaviour.Identity, syncMessage, ChannelType);
                 }
             }
         }
 
-        public NetworkVariableBase() : this(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Everyone, true) { }
-        public NetworkVariableBase(object initialValue) : this(initialValue, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Everyone, true) { }
-        public NetworkVariableBase(object initialValue, bool reliable) : this(initialValue, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Everyone, reliable) { }
-        public NetworkVariableBase(object initialValue,
-            NetworkVariableReadPermission readPermission = NetworkVariableReadPermission.Everyone,
-            NetworkVariableWritePermission writePermission = NetworkVariableWritePermission.Everyone,
-            bool reliable = true)
+        public NetworkVariableBase() : this(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Everyone, ChannelType.Environment, true) { }
+        public NetworkVariableBase(object initialValue) : this(initialValue, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Everyone, ChannelType.Environment, true) { }
+        public NetworkVariableBase(object initialValue, ChannelType channelType, bool reliable) : this(initialValue, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Everyone, channelType, reliable) { }
+        public NetworkVariableBase(
+            object initialValue,
+            NetworkVariableReadPermission readPermission,
+            NetworkVariableWritePermission writePermission,
+            ChannelType channelType,
+            bool reliable)
         {
             _value = initialValue;
+            ChannelType = channelType;
             IsReliable = reliable;
             ReadPermission = readPermission;
             WritePermission = writePermission;
@@ -109,8 +112,13 @@ namespace Netcode.Runtime.Behaviour
             };
         }
 
-        public void SetValueFromNetworkMessage(object value)
+        public void SetValueFromNetworkMessage(object value, bool? reliable, DateTime timeStamp)
         {
+            if (reliable.HasValue && reliable.Value == false && timeStamp < LastSet) // Old value over UDP received
+                return;
+            
+            LastSet = timeStamp;
+
             UnityMainThreadDispatcher.Instance().Enqueue(() =>
             {
                 _onValueChange?.Invoke(_value, value);

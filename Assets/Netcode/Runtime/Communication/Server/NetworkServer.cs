@@ -58,8 +58,7 @@ namespace Netcode.Runtime.Communication.Server
         private readonly IAsymmetricEncryption _asymmetricEncryption;
 
         public NetworkServer(
-            ushort tcpPort,
-            ushort udpPort,
+            ushort port,
             ushort maxClients,
             ILoggerFactory loggerFactory)
         {
@@ -69,7 +68,7 @@ namespace Netcode.Runtime.Communication.Server
             MessageHandlerRegistry = new();
 
             // Setup member variables
-            _udpEndpoint = new IPEndPoint(IPAddress.Any, udpPort);
+            _udpEndpoint = new IPEndPoint(IPAddress.Any, port);
             _nextClientId = 0;
             _stopped = true;
 
@@ -79,7 +78,7 @@ namespace Netcode.Runtime.Communication.Server
             _logger = _loggerFactory.CreateLogger<NetworkServer>();
 
             // Setup sockets
-            _tcpServer = new TcpListener(IPAddress.Any, tcpPort);
+            _tcpServer = new TcpListener(IPAddress.Any, port);
         }
 
         /// <summary>
@@ -123,7 +122,7 @@ namespace Netcode.Runtime.Communication.Server
                 NetworkServerClient client = new(
                     NextClientId,
                     tcpClient,
-                    _udpClient,
+                    new UdpClient(AddressFamily.InterNetwork),
                     _asymmetricEncryption,
                     _loggerFactory.CreateLogger<NetworkServerClient>());
 
@@ -195,22 +194,9 @@ namespace Netcode.Runtime.Communication.Server
 
                 byte[] data = _udpClient.EndReceive(result, ref remoteEp);
 
-                _logger.LogInfo($"Incoming UDP datagram from {remoteEp}");
-
                 if (data != null && data.Length > 0)
                 {
-                    NetworkServerClient client = Clients.Find(c => c.UdpEndPoint?.Address?.MapToIPv4()?.ToString() == remoteEp.Address.MapToIPv4().ToString());
-
-                    if (client == null)
-                    {
-                        _logger.LogInfo($"Could not find client with udp address {remoteEp}, registering client...");
-
-                        client = Clients.Find(c => c.Address.MapToIPv4().ToString() == remoteEp.Address.MapToIPv4().ToString());
-
-                        client.UdpEndPoint = remoteEp;
-                        client.UdpIsConfigured = true;
-                    }
-
+                    NetworkServerClient client = GetClientByRemoteEndPoint(remoteEp);
                     client.ReceiveDatagramAsync(data);
                 }
 
@@ -227,6 +213,13 @@ namespace Netcode.Runtime.Communication.Server
             {
                 _logger.LogError(ex);
             }
+        }
+
+        private NetworkServerClient GetClientByRemoteEndPoint(IPEndPoint remoteEp)
+        {
+            return Clients.Find(c =>
+                    c.RemoteEndPoint.Address.MapToIPv4().ToString() == remoteEp.Address.MapToIPv4().ToString() &&
+                    remoteEp.Port == c.RemoteEndPoint.Port);
         }
 
         /// <summary>

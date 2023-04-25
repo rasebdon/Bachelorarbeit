@@ -99,14 +99,17 @@ namespace Netcode.Runtime.Behaviour
                     var value = NetworkHandler.Instance.Serializer.Deserialize(
                         msg.Value,
                         netVar.Value.GetType());
-                    netVar.SetValueFromNetworkMessage(value);
+                    netVar.SetValueFromNetworkMessage(value, msg.Reliable, msg.TimeStamp);
                 }
             }
 
             // Send to client if this has a client
             if (IsPlayer)
             {
-                NetworkHandler.Instance.SendTcpToClient(msg, OwnerClientId);
+                if(msg.Reliable.HasValue && msg.Reliable.Value || msg.Reliable == null)
+                    NetworkHandler.Instance.SendTcpToClient (msg, OwnerClientId);
+                else
+                    NetworkHandler.Instance.SendUdpToClient (msg, OwnerClientId);
             }
         }
 
@@ -200,7 +203,7 @@ namespace Netcode.Runtime.Behaviour
                 var value = NetworkHandler.Instance.Serializer.Deserialize(
                     msg.Value,
                     netVar.Value.GetType());
-                netVar.SetValueFromNetworkMessage(value);
+                netVar.SetValueFromNetworkMessage(value, msg.Reliable, msg.TimeStamp);
             }
         }
     }

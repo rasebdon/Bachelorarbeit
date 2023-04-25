@@ -11,8 +11,9 @@ namespace Netcode.Runtime.Communication.Server
     public class NetworkServerClient : NetworkClientBase<NetworkServerClient>
     {
         public NetworkServerClient(uint clientId, TcpClient client, UdpClient udpClient, IAsymmetricEncryption asymmetricEncryption, ILogger<NetworkServerClient> logger)
-            : base(clientId, client, udpClient, asymmetricEncryption, logger)
+            : base(clientId, client, asymmetricEncryption, logger)
         {
+            _udpClient = udpClient;
             MessageHandlerRegistry.RegisterHandler(new ActionMessageHandler<EncryptionInfoMessage>(OnEncryptionInfoMessageReceive, Guid.Parse("025725B8-AB25-4F9F-9EFA-BF819515FF91")));
         }
 

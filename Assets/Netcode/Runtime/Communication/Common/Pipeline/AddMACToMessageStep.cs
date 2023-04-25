@@ -1,4 +1,5 @@
-﻿using Netcode.Runtime.Communication.Common.Security;
+﻿using Netcode.Runtime.Communication.Common.Exceptions;
+using Netcode.Runtime.Communication.Common.Security;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -31,7 +32,7 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
 
             if (!_macHandler.GenerateMAC(input.InputBuffer.ToArray()).SequenceEqual(mac))
             {
-                throw new Exception("Invalid MAC, data may have been tampered with!");
+                throw new InvalidMACException();
             }
             return input;
         }

@@ -1,3 +1,4 @@
+using Netcode.Channeling;
 using Netcode.Runtime.Behaviour;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,7 +8,7 @@ using Debug = UnityEngine.Debug;
 
 public class NetworkVariableSpeedTest : NetworkBehaviour
 {
-    public NetworkVariable<int> netVar = new(10);
+    public NetworkVariable<int> netVar = new(10, ChannelType.Environment, false);
 
     public override void NetworkStart()
     {
@@ -27,17 +28,14 @@ public class NetworkVariableSpeedTest : NetworkBehaviour
                 noise.Add(stopwatch.Elapsed.TotalMilliseconds);
             }
 
-            Debug.Log($"Noise : {noise.Average():0.00000000000000000000000}");
-
             netVar.OnValueChange += OnChange;
+
+            SendUpdate(netVar.GetValue() + 1);
         }
     }
 
-    private readonly float resetTime = 1f;
-    private float timer = 0;
+    [SerializeField] private float resetTime = 1f;
     Stopwatch stopwatch;
-
-    private bool printed = false;
 
     public int warmupCount;
     private int currentWarmupCount;
@@ -45,46 +43,24 @@ public class NetworkVariableSpeedTest : NetworkBehaviour
     public int runCount;
     private int currentRunCount;
 
-    public override void NetworkUpdate()
-    {
-        if (Identity.IsLocalPlayer)
-        {
-            if (timer > 0)
-            {
-                timer -= Time.deltaTime;
-            }
-            else
-            {
-                if(currentWarmupCount >= warmupCount && currentRunCount >= runCount)
-                {
-                    if (!printed)
-                    {
-                        Debug.Log($"Conclusion");
-                        Debug.Log($"Noise : {noise.Average():0.00000000000000000000000}");
-                        Debug.Log($"Warmup: {warmup.Average():0.00000000000000000000000}");
-                        Debug.Log($"Actual: {actual.Average():0.00000000000000000000000}");
-                        Debug.Log($"Cutting away lowest and highest values");
-                        Debug.Log($"Warmup: {warmup.Where(x => x != warmup.Min() && x != warmup.Max()).Average()}");
-                        Debug.Log($"Actual: {actual.Where(x => x != actual.Min() && x != actual.Max()).Average()}");
-                        Debug.Log($"Removing noise");
-                        Debug.Log($"Warmup: {warmup.Where(x => x != warmup.Min() && x != warmup.Max()).Average() - noise.Average()}");
-                        Debug.Log($"Actual: {actual.Where(x => x != warmup.Min() && x != warmup.Max()).Average() - noise.Average()}");
-                        printed = true;
-                    }
-
-                    return;
-                }
-                Debug.Log("Sending update");
-                timer = resetTime;
-                stopwatch = Stopwatch.StartNew();
-                netVar.SetValue(netVar.GetValue() + 1);
-            }
-        }
-    }
-
     private readonly List<double> warmup = new();
     private readonly List<double> actual = new();
     private readonly List<double> noise = new();
+
+    private void SendUpdate(int newVal)
+    {
+        stopwatch = Stopwatch.StartNew();
+        netVar.SetValue(newVal);
+    }
+
+    private void CreateCSV()
+    {
+        string csv = "ms, measuringType\n";
+        warmup.ForEach(element => csv += $"{element:0.00000}, {nameof(warmup)}\n");
+        actual.ForEach(element => csv += $"{element:0.00000}, {nameof(actual)}\n");
+        noise.ForEach(element => csv += $"{element:0.00000}, {nameof(noise)}\n");
+        System.IO.File.WriteAllText($"C:\\Users\\rdohn\\OneDrive\\Bachelorarbeit\\Netcode_Testresults\\myNetcode_{netVar.ChannelType}_{(netVar.IsReliable ? "tcp" : "udp")}.csv", csv);
+    }
 
     private void OnChange(int arg1, int arg2)
     {
@@ -95,13 +71,32 @@ public class NetworkVariableSpeedTest : NetworkBehaviour
             if (currentWarmupCount < warmupCount)
             {
                 warmup.Add(stopwatch.Elapsed.TotalMilliseconds);
-                Debug.Log($"[{currentWarmupCount++}] Warmup: {stopwatch.Elapsed.TotalMilliseconds:0.00000000000000000000000}");
+                Debug.Log($"[{currentWarmupCount}] Warmup: {stopwatch.Elapsed.TotalMilliseconds:0.00000} - Value {arg2}");
+                currentWarmupCount++;
             }
             else if (currentRunCount < runCount)
             {
                 actual.Add(stopwatch.Elapsed.TotalMilliseconds);
-                Debug.Log($"[{currentRunCount++}] Actual: {stopwatch.Elapsed.TotalMilliseconds:0.00000000000000000000000}");
+                Debug.Log($"[{currentRunCount}] Actual: {stopwatch.Elapsed.TotalMilliseconds:0.00000} - Value {arg2}");
+                currentRunCount++;
             }
+
+            if (currentWarmupCount >= warmupCount && currentRunCount >= runCount)
+            {
+                Debug.Log($"Noise : {noise.Average()}");
+                Debug.Log($"Warmup: {warmup.Average()}");
+                Debug.Log($"Actual: {actual.Average()}");
+                Debug.Log($"Cutting away lowest and highest values");
+                Debug.Log($"Warmup: {warmup.Where(x => x != warmup.Min() && x != warmup.Max()).Average()}");
+                Debug.Log($"Actual: {actual.Where(x => x != actual.Min() && x != actual.Max()).Average()}");
+                Debug.Log($"Removing noise");
+                Debug.Log($"Warmup: {warmup.Where(x => x != warmup.Min() && x != warmup.Max()).Average() - noise.Average()}");
+                Debug.Log($"Actual: {actual.Where(x => x != warmup.Min() && x != warmup.Max()).Average() - noise.Average()}");
+                CreateCSV();
+                return;
+            }
+
+            SendUpdate(arg2 + 1);
         }
     }
 }
