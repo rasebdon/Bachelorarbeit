@@ -252,6 +252,7 @@ namespace Netcode.Runtime.Communication.Common
                         OutputData = new(),
                     };
                     _tcpClient.GetStream().Write(_pipeline.RunPipeline(output).OutputData.ToArray());
+                    _tcpClient.GetStream().Flush();
 
                     for (int i = 0; i < output.Messages.Length; i++)
                     {

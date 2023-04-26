@@ -227,6 +227,7 @@ namespace Netcode.Runtime.Integration
             IsStarted = true;
 
             _server.Start();
+            InvokeRepeating(nameof(ServerTick), 0, 1f / _serverTickRate);
         }
 
         public async void StartClient()
@@ -240,6 +241,7 @@ namespace Netcode.Runtime.Integration
             IsClient = true;
             IsStarted = true;
 
+            InvokeRepeating(nameof(ClientTick), 0, 1f / _serverTickRate);
             await _client.Connect(_hostname, _port);
         }
 
@@ -255,51 +257,13 @@ namespace Netcode.Runtime.Integration
             IsStarted = true;
 
             _server.Start();
+            InvokeRepeating(nameof(ServerTick), 0, 1f / _serverTickRate);
+            InvokeRepeating(nameof(ClientTick), 0, 1f / _serverTickRate);
             await _client.Connect("127.0.0.1", _port);
         }
 
-        private float _clientTickTimer = 0;
-        private float _serverTickTimer = 0;
-
-        private void Update()
-        {
-            if (IsStarted)
-            {
-                if (IsServer)
-                {
-                    TryServerTick();
-                }
-                else if (IsClient)
-                {
-                    TryClientTick();
-                }
-                else if (IsHost)
-                {
-                    TryClientTick();
-                    TryServerTick();
-                }
-            }
-        }
-
-        private void TryServerTick()
-        {
-            if (_serverTickTimer >= 0)
-            {
-                _server.OnTick();
-                _serverTickTimer = 1f / _serverTickRate;
-            }
-            else _serverTickTimer -= Time.deltaTime;
-        }
-
-        private void TryClientTick()
-        {
-            if (_clientTickTimer >= 0)
-            {
-                _client.OnTick();
-                _clientTickTimer = 1f / _clientTickRate;
-            }
-            else _clientTickTimer -= Time.deltaTime;
-        }
+        void ServerTick() => _server.OnTick();
+        void ClientTick() => _client.OnTick();
 
         public NetworkIdentity InstantiateNetworkObject(GameObject obj, Vector3 position, Quaternion rotation)
         {

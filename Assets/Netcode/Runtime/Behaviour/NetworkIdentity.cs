@@ -11,7 +11,7 @@ namespace Netcode.Runtime.Behaviour
     [DisallowMultipleComponent]
     public class NetworkIdentity : MonoBehaviour
     {
-        private static readonly Dictionary<Guid, NetworkIdentity> _identities = new();
+        public static Dictionary<Guid, NetworkIdentity> Identities { get; } = new();
 
         private Dictionary<uint, NetworkVariableBase> _networkVariables = new();
 
@@ -51,7 +51,7 @@ namespace Netcode.Runtime.Behaviour
 
         private void Start()
         {
-            _identities.Add(Guid, this);
+            Identities.Add(Guid, this);
 
             // Get network variables on this gameobject through reflections
             var behaviors = GetComponents<NetworkBehaviour>().ToList();
@@ -178,12 +178,12 @@ namespace Netcode.Runtime.Behaviour
             }
 
             ChannelHandler.Instance.ExitFromAllZones(this);
-            _identities.Remove(Guid);
+            Identities.Remove(Guid);
         }
 
         public static NetworkIdentity FindByGuid(Guid id)
         {
-            if (_identities.TryGetValue(id, out NetworkIdentity identity))
+            if (Identities.TryGetValue(id, out NetworkIdentity identity))
             {
                 return identity;
             }
@@ -205,6 +205,18 @@ namespace Netcode.Runtime.Behaviour
                     netVar.Value.GetType());
                 netVar.SetValueFromNetworkMessage(value, msg.Reliable, msg.TimeStamp);
             }
+        }
+
+        public void ForwardTcp<T>(T msg, uint? clientId) where T : NetworkMessage
+        {
+            if (IsPlayer)
+                NetworkHandler.Instance.SendTcpToClient(msg, OwnerClientId);
+        }
+
+        public void ForwardUdp<T>(T msg, uint? clientId) where T : NetworkMessage
+        {
+            if (IsPlayer)
+                NetworkHandler.Instance.SendUdpToClient(msg, OwnerClientId);
         }
     }
 }

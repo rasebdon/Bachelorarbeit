@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: -7804532386752921608}
   - component: {fileID: -1178124254148113862}
   - component: {fileID: 5749488820990056511}
-  - component: {fileID: 1247454128082975399}
+  - component: {fileID: 4280249134508984353}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -113,8 +113,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 997abc52eb31555439fd036001da005b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _guidAsString: 19ce538c-4a72-4c60-89e6-e6fba198d65a
---- !u!114 &1247454128082975399
+  _guidAsString: 823c4eef-e827-402d-ae96-e3ad5dfe1aee
+--- !u!114 &4280249134508984353
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -123,13 +123,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 5749488820990056509}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a0aba26cad213114bafe9c9ea5a07be3, type: 3}
+  m_Script: {fileID: 11500000, guid: 368cbe44370dfb3418752b7dbdee6f58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resetTime: 0.01
-  warmupCount: 50
-  noiseCancelCount: 50
-  runCount: 1000
+  syncDistance: 0.1
+  accuracy: 0.01
+  interpolate: 0
 --- !u!1001 &5116480240368228571
 PrefabInstance:
   m_ObjectHideFlags: 0

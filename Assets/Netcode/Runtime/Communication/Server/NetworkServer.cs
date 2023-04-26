@@ -18,6 +18,7 @@ namespace Netcode.Runtime.Communication.Server
         /// The list of all currently connected clients
         /// </summary>
         public List<NetworkServerClient> Clients { get; }
+        public Dictionary<string, NetworkServerClient> UdpClientRegistry{ get; }
         private readonly object _clientListLock = new();
 
         /// <summary>
@@ -66,6 +67,7 @@ namespace Netcode.Runtime.Communication.Server
             // Setup properties
             MaxClients = maxClients;
             Clients = new();
+            UdpClientRegistry = new();
             MessageHandlerRegistry = new();
 
             // Setup member variables
@@ -158,7 +160,7 @@ namespace Netcode.Runtime.Communication.Server
                     _loggerFactory.CreateLogger<NetworkServerClient>());
 
                 _logger.LogInfo("Incoming TCP client connection");
-                _logger.LogDetail($"Client Info - ClientId: {client.ClientId}; EndPoint: {((IPEndPoint)tcpClient.Client.RemoteEndPoint)}");
+                _logger.LogDetail($"Client Info - ClientId: {client.ClientId}; EndPoint: {(IPEndPoint)tcpClient.Client.RemoteEndPoint}");
 
                 // Check if the server has space for additional clients
                 if (Clients.Count == MaxClients)
@@ -173,7 +175,11 @@ namespace Netcode.Runtime.Communication.Server
                 else
                 {
                     // Client connection started
-                    lock (_clientListLock) Clients.Add(client);
+                    lock (_clientListLock)
+                    {
+                        Clients.Add(client);
+                        UdpClientRegistry.Add(((IPEndPoint)tcpClient.Client.RemoteEndPoint).ToString(), client);
+                    }
                     client.OnConnect += (uint clientId) =>
                     {
                         _logger.LogInfo($"Client {clientId} connected!");
@@ -187,8 +193,11 @@ namespace Netcode.Runtime.Communication.Server
                         _logger.LogInfo($"Client {clientId} disconnecting!");
 
                         OnServerClientDisconnect?.Invoke(this, new ServerConnectionEventArgs(client));
-                        lock (_clientListLock) Clients.Remove(client);
-
+                        lock (_clientListLock)
+                        {
+                            Clients.Remove(client);
+                            UdpClientRegistry.Remove(((IPEndPoint)tcpClient.Client.RemoteEndPoint).ToString());
+                        }
                         client.Dispose();
                     };
 
@@ -217,39 +226,11 @@ namespace Netcode.Runtime.Communication.Server
             }
         }
 
-        private void OnUdpReceive(IAsyncResult result)
-        {
-            try
-            {
-                IPEndPoint remoteEp = new(IPAddress.Any, _udpEndpoint.Port);
-
-                byte[] data = _udpClient.EndReceive(result, ref remoteEp);
-                _udpClient.BeginReceive(OnUdpReceive, null);
-
-                if (data != null && data.Length > 0)
-                {
-                    NetworkServerClient client = GetClientByRemoteEndPoint(remoteEp);
-                    client.ReceiveDatagramAsync(data);
-                }
-            }
-            catch (ObjectDisposedException ex)
-            {
-                if (!_stopped)
-                {
-                    _logger.LogError(ex);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex);
-            }
-        }
-
         private NetworkServerClient GetClientByRemoteEndPoint(IPEndPoint remoteEp)
         {
-            return Clients.Find(c =>
-                    c.RemoteEndPoint.Address.MapToIPv4().ToString() == remoteEp.Address.MapToIPv4().ToString() &&
-                    remoteEp.Port == c.RemoteEndPoint.Port);
+            if(UdpClientRegistry.TryGetValue(remoteEp.ToString(), out var client))
+                return client;
+            return null;
         }
 
         /// <summary>

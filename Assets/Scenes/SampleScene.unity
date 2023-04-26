@@ -533,13 +533,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _hostname: 127.0.0.1
-  _tcpPort: 27600
-  _udpPort: 27600
+  _port: 27600
   _maxClients: 10
   _logLevel: 0
   _menuSceneBuildIndex: 0
-  _serverTickRate: 60
-  _clientTickRate: 60
+  _serverTickRate: 144
+  _clientTickRate: 144
   _isServer: 0
   _isClient: 0
   _isHost: 0

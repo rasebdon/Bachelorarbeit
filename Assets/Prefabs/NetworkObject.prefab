@@ -125,6 +125,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db344b0c170197940bfa866a129a0181, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ChannelType: 0
+  Reliable: 0
+  resetTime: 0.04
+  warmupCount: 50
+  noiseCancelCount: 10
+  runCount: 1000
 --- !u!1001 &4793922789173749142
 PrefabInstance:
   m_ObjectHideFlags: 0
