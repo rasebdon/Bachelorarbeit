@@ -1,5 +1,6 @@
 ﻿using Netcode.Channeling;
 using Netcode.Runtime.Behaviour;
+using Netcode.Runtime.Communication.Client;
 using Netcode.Runtime.Communication.Common.Messaging;
 using Netcode.Runtime.Integration;
 using System;
@@ -128,7 +129,7 @@ public class CustomMessageTest : NetworkBehaviour
         warmup.ForEach(element => csv += $"{element:0.00000}, {nameof(warmup)}\n");
         actual.ForEach(element => csv += $"{element:0.00000}, {nameof(actual)}\n");
         noise.ForEach(element => csv += $"{element:0.00000}, {nameof(noise)}\n");
-        System.IO.File.WriteAllText($"C:\\Users\\rdohn\\OneDrive\\Bachelorarbeit\\Netcode_Testresults\\myNetcode_{ChannelType}_{(Reliable ? "tcp" : "udp")}_client_{Identity.OwnerClientId}.csv", csv);
+        System.IO.File.WriteAllText($"C:\\Users\\rdohn\\OneDrive\\Bachelorarbeit\\Netcode_Testresults\\myNetcode_{ChannelType}_{(Reliable ? "tcp" : "udp")}_client_{NetworkHandler.Instance.ClientId}.csv", csv);
     }
 
     public override void NetworkUpdate()

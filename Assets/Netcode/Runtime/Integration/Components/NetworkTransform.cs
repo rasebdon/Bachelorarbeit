@@ -10,14 +10,6 @@ public class NetworkTransform : NetworkBehaviour
     public float accuracy = 0.01f;
     public bool interpolate;
 
-    private void Start()
-    {
-        netVar.OnValueChange += (old, _new) =>
-        {
-            Debug.Log($"Changed! {old} ; {_new}");
-        };
-    }
-
     public override void NetworkUpdate()
     {
         if((IsClient || IsHost) && 

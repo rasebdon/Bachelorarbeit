@@ -16,10 +16,13 @@ namespace Netcode.Channeling
     {
         public static ChannelHandler Instance { get; private set; }
 
+        private Channel _privateChannel;
+
         private readonly Dictionary<NetworkIdentity, ZoneData> _zoneRegistry = new();
 
         private void Awake()
         {
+            _privateChannel = new(ChannelType.Environment);
             if (Instance != null && Instance != this)
             {
                 Debug.LogError("Cannot have multiple instances of NetworkHandler", this);
@@ -43,11 +46,15 @@ namespace Netcode.Channeling
                         break;
                 }
             }
+            else
+            {
+                _privateChannel.Publish(message, identity.OwnerClientId);
+            }
         }
 
         public void EnterZone(NetworkIdentity identity, Zone zone)
         {
-            if(!_zoneRegistry.ContainsKey(identity))
+            if (!_zoneRegistry.ContainsKey(identity))
                 _zoneRegistry.Add(identity, new());
 
             var zoneData = _zoneRegistry[identity];
@@ -56,6 +63,7 @@ namespace Netcode.Channeling
 
             if (zoneData.CurrentZone == null)
             {
+                _privateChannel.Unsubscribe(identity);
                 zone.Subscribe(identity, ChannelType.Environment);
                 zoneData.CurrentZone = zone;
             }
@@ -73,9 +81,11 @@ namespace Netcode.Channeling
             {
                 zoneData.Zones.Remove(zone);
                 zoneData.CurrentZone = zoneData.Zones.FirstOrDefault();
-                if(zoneData.CurrentZone != null)
+                if (zoneData.CurrentZone != null)
                     zoneData.CurrentZone.Subscribe(identity, ChannelType.Environment);
-            }
+                else 
+                    _privateChannel.Subscribe(identity);
+            }            
         }
 
         public void ExitFromAllZones(NetworkIdentity identity)

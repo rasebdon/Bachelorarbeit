@@ -26,9 +26,10 @@ namespace Netcode.Runtime.Communication.Server
         /// </summary>
         private uint NextClientId { get => _nextClientId++; }
         /// <summary>
-        /// Do not use! Use <see cref="NextClientId"/> instead!
+        /// Do not use! Use <see cref="NextClientId"/> instead! 
+        /// Starts at 1, 0 is the predesignated id for the server
         /// </summary>
-        private uint _nextClientId = 0;
+        private uint _nextClientId = 1;
 
         public ushort MaxClients { get; }
 
