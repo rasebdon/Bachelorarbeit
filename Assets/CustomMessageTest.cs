@@ -125,10 +125,8 @@ public class CustomMessageTest : NetworkBehaviour
 
     private void CreateCSV()
     {
-        string csv = "ms, measuringType\n";
-        warmup.ForEach(element => csv += $"{element:0.00000}, {nameof(warmup)}\n");
-        actual.ForEach(element => csv += $"{element:0.00000}, {nameof(actual)}\n");
-        noise.ForEach(element => csv += $"{element:0.00000}, {nameof(noise)}\n");
+        string csv = "\"ms\"\n";
+        actual.ForEach(element => csv += $"\"{element:0.00000}\"\n");
         System.IO.File.WriteAllText($"C:\\Users\\rdohn\\OneDrive\\Bachelorarbeit\\Netcode_Testresults\\myNetcode_{ChannelType}_{(Reliable ? "tcp" : "udp")}_client_{NetworkHandler.Instance.ClientId}.csv", csv);
     }
 

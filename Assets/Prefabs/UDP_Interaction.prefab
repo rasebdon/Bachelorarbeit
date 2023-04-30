@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 8922096680446484014}
   - component: {fileID: -3961432825869109687}
   m_Layer: 0
-  m_Name: NetworkObject
+  m_Name: UDP_Interaction
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -125,7 +125,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db344b0c170197940bfa866a129a0181, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ChannelType: 0
+  ChannelType: 1
   Reliable: 0
   resetTime: 0.04
   warmupCount: 50

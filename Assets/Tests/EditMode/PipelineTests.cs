@@ -145,4 +145,40 @@ public class PipelineTests
         Assert.That(receivedMessages.FirstOrDefault(m => m is DestroyNetworkObjectMessage msg && msg.Identity == ((DestroyNetworkObjectMessage)messages[0]).Identity), Is.Not.Null);
         Assert.That(receivedMessages.FirstOrDefault(m => m is SyncNetworkVariableMessage msg && msg.NetworkIdentity == ((SyncNetworkVariableMessage)messages[1]).NetworkIdentity), Is.Not.Null);
     }
+
+    [Test]
+    public void ReadWriteMacAndEncryption1000Times()
+    {
+        // Arrange
+        Pipeline.AddEncryption(new AES256Encryption());
+        Pipeline.AddMAC(new HMAC256Handler());
+        var messages = new NetworkMessage[]
+        {
+                new DestroyNetworkObjectMessage(Guid.NewGuid()),
+                new SyncNetworkVariableMessage(new byte[] {0, 0, 1, 1}, 412, Guid.NewGuid(), ChannelType.Environment)
+        };
+
+        for (int i = 0; i < 1000; i++)
+        {
+            var output = new PipelineOutputObject
+            {
+                Messages = messages,
+                OutputData = new()
+            };
+
+            // Act
+            Stream.Write(Pipeline.RunPipeline(output).OutputData.ToArray());
+            Stream.Position = 0;
+
+            // Assert
+            var input = new PipelineInputObject
+            {
+                InputStream = Stream,
+            };
+            var receivedMessages = Pipeline.RunPipeline(input).Result.Messages;
+
+            Assert.That(receivedMessages.FirstOrDefault(m => m is DestroyNetworkObjectMessage msg && msg.Identity == ((DestroyNetworkObjectMessage)messages[0]).Identity), Is.Not.Null);
+            Assert.That(receivedMessages.FirstOrDefault(m => m is SyncNetworkVariableMessage msg && msg.NetworkIdentity == ((SyncNetworkVariableMessage)messages[1]).NetworkIdentity), Is.Not.Null);
+        }
+    }
 }

@@ -12,6 +12,8 @@ namespace Netcode.Runtime.Communication.Client
 {
     public class NetworkClient : NetworkClientBase<NetworkClient>
     {
+        private Task _udpReceiveTask;
+
         public NetworkClient(
             ILogger<NetworkClient> logger)
             :
@@ -32,6 +34,7 @@ namespace Netcode.Runtime.Communication.Client
             try
             {
                 await _tcpClient.ConnectAsync(hostname, port);
+                _tcpStream = _tcpClient.GetStream();
             }
             catch (SocketException)
             {
@@ -46,16 +49,27 @@ namespace Netcode.Runtime.Communication.Client
 
             _udpClient = new UdpClient((IPEndPoint)_tcpClient.Client.LocalEndPoint);
 
-            BeginReceiveTcpAsync();
-            BeginReceiveUdpAsync();
+            BeginReceiveTcp();
+            BeginReceiveUdp();
         }
 
-        private async void BeginReceiveUdpAsync()
+        private void BeginReceiveUdp()
+        {
+            _udpReceiveTask = Task.Factory.StartNew(() => ReceiveUdpAsync(), TaskCreationOptions.LongRunning);
+        }
+
+        private async void ReceiveUdpAsync()
         {
             UdpReceiveResult received = await _udpClient.ReceiveAsync();
 
-            ReceiveDatagramAsync(received.Buffer);
-            BeginReceiveUdpAsync();
+            ReceiveDatagram(received.Buffer);
+            ReceiveUdpAsync();
+        }
+
+        public override void Dispose()
+        {
+            _udpReceiveTask.Dispose();
+            base.Dispose();
         }
 
         #region OnReceive Message Behaviours

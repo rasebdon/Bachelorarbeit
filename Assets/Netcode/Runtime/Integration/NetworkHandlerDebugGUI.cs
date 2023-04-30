@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Netcode.Runtime.Integration
@@ -6,7 +7,7 @@ namespace Netcode.Runtime.Integration
     [RequireComponent(typeof(NetworkHandler))]
     public class NetworkHandlerDebugGUI : MonoBehaviour
     {
-        [SerializeField] private GameObject _prefabToInstantiate;
+        [SerializeField] private List<GameObject> _prefabsToInstantiate;
 
         private NetworkHandler _handler;
         private Vector2 _scrollView;
@@ -101,10 +102,13 @@ namespace Netcode.Runtime.Integration
 
         public void ShowServerHostButtons()
         {
-            if (GUILayout.Button("Instantiate Prefab"))
+            foreach (var item in _prefabsToInstantiate)
             {
-                NetworkHandler.Instance.InstantiateNetworkObject(
-                    _prefabToInstantiate, Vector3.zero, Quaternion.identity);
+                if (GUILayout.Button(item.name))
+                {
+                    NetworkHandler.Instance.InstantiateNetworkObject(
+                        item, Vector3.zero, Quaternion.identity);
+                }
             }
         }
 

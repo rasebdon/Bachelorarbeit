@@ -10,6 +10,8 @@ namespace Netcode.Runtime.Communication.Common.Pipeline
     {
         private IMACHandler _macHandler;
 
+        private object _macLock = new object();
+
         public AddMACToMessageStep(IMACHandler macHandler)
         {
             _macHandler = macHandler;

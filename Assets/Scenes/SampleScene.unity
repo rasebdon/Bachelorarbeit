@@ -544,8 +544,11 @@ MonoBehaviour:
   _isHost: 0
   _started: 0
   _objectRegistry:
-  - {fileID: 8922096680446484004, guid: f4f26b3e5ff39ab4f87f3c04be2e0101, type: 3}
   - {fileID: 5749488820990056509, guid: 9d7fb5578c6e8534dbd0b1874886d4cb, type: 3}
+  - {fileID: 8922096680446484004, guid: e5ec8b70fa1256241887edca57ed1cc8, type: 3}
+  - {fileID: 8922096680446484004, guid: 6e801fcf6755b5d48b5903481bff7020, type: 3}
+  - {fileID: 8922096680446484004, guid: f4f26b3e5ff39ab4f87f3c04be2e0101, type: 3}
+  - {fileID: 8922096680446484004, guid: 035c474623294bd4eae0537dfd852d49, type: 3}
   _playerPrefab: {fileID: 5749488820990056509, guid: 9d7fb5578c6e8534dbd0b1874886d4cb, type: 3}
 --- !u!114 &2117910824
 MonoBehaviour:
@@ -559,7 +562,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20691dfb535fd374399f538ec9b0e9cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _prefabToInstantiate: {fileID: 8922096680446484004, guid: f4f26b3e5ff39ab4f87f3c04be2e0101, type: 3}
+  _prefabsToInstantiate:
+  - {fileID: 8922096680446484004, guid: e5ec8b70fa1256241887edca57ed1cc8, type: 3}
+  - {fileID: 8922096680446484004, guid: 6e801fcf6755b5d48b5903481bff7020, type: 3}
+  - {fileID: 8922096680446484004, guid: f4f26b3e5ff39ab4f87f3c04be2e0101, type: 3}
+  - {fileID: 8922096680446484004, guid: 035c474623294bd4eae0537dfd852d49, type: 3}
 --- !u!114 &2117910825
 MonoBehaviour:
   m_ObjectHideFlags: 0

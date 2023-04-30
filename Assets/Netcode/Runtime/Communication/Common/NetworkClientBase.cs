@@ -5,6 +5,7 @@ using Netcode.Runtime.Communication.Common.Pipeline;
 using Netcode.Runtime.Communication.Common.Security;
 using Netcode.Runtime.Communication.Server;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -27,6 +28,7 @@ namespace Netcode.Runtime.Communication.Common
 
         // TCP related member variables
         protected readonly TcpClient _tcpClient;
+        protected NetworkStream _tcpStream;
 
         // UDP related member variables
         /// <summary>
@@ -39,6 +41,7 @@ namespace Netcode.Runtime.Communication.Common
         // Message Protocol Variables
         protected IPipeline _pipeline;
         private CancellationTokenSource _cancellationTokenSource = new();
+        protected Task _tcpReceiveTask;
 
         // Asymmetric encryption for initialization
         protected readonly IAsymmetricEncryption _asymmetricEncryption;
@@ -134,43 +137,49 @@ namespace Netcode.Runtime.Communication.Common
             }
         }
 
-        public async void BeginReceiveTcpAsync()
+        public void BeginReceiveTcp()
+        {
+            _tcpReceiveTask = Task.Factory.StartNew(() => ReceiveTcp(), TaskCreationOptions.LongRunning);
+        }
+
+        protected async void ReceiveTcp()
         {
             try
             {
-                await ReceiveMessage(_tcpClient.GetStream(), true);
-
-                BeginReceiveTcpAsync();
+                while (!Disposed)
+                {
+                    await ReceiveMessage(_tcpStream, true);
+                }
             }
             catch (ObjectDisposedException ex)
             {
                 if (!Disposed)
                 {
-                    _logger.LogError($"Exception occurred in {nameof(BeginReceiveTcpAsync)}", ex);
+                    _logger.LogError($"Exception occurred in {nameof(BeginReceiveTcp)}", ex);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Exception occurred in {nameof(BeginReceiveTcpAsync)}", ex);
+                _logger.LogError($"Exception occurred in {nameof(BeginReceiveTcp)}", ex);
             }
         }
 
-        public async void ReceiveDatagramAsync(byte[] data)
+        public void ReceiveDatagram(byte[] data)
         {
             try
             {
-                await ReceiveMessage(new MemoryStream(data), false);
+                ReceiveMessage(new MemoryStream(data), false);
             }
             catch (ObjectDisposedException ex)
             {
                 if (!Disposed)
                 {
-                    _logger.LogError($"Exception occurred in {nameof(ReceiveDatagramAsync)}", ex);
+                    _logger.LogError($"Exception occurred in {nameof(ReceiveDatagram)}", ex);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Exception occurred in {nameof(ReceiveDatagramAsync)}", ex);
+                _logger.LogError($"Exception occurred in {nameof(ReceiveDatagram)}", ex);
             }
         }
 
@@ -202,35 +211,21 @@ namespace Netcode.Runtime.Communication.Common
             {
                 _logger.LogInfo("Invalid MAC received, dropping packet");
             }
-            catch (IndexOutOfRangeException)
-            {
-                _logger.LogInfo($"Pipeline error, closing remote connection for client {ClientId}");
-                Dispose();
-                return;
-            }
             catch (Exception ex)
             {
-                if (ex is ObjectDisposedException or IOException && Disposed)
-                {
-                    return;
-                }
-
-                if (ex is RemoteClosedException)
-                {
-                    _logger.LogInfo("Remote closed connection!");
-                    Dispose();
-                    return;
-                }
-
-                _logger.LogError($"Fatal exception occurred in {nameof(ReceiveMessage)}", ex);
+                _logger.LogError($"Fatal exception occurred in {nameof(ReceiveMessage)}: {ex.Message}", ex);
+                Dispose();
             }
         }
 
-        public void Dispose()
+        public virtual void Dispose()
         {
             if (Disposed)
                 return;
 
+            _logger.LogWarning($"Disposing Client {ClientId}");
+
+            _tcpReceiveTask.Dispose();
             _cancellationTokenSource.Cancel();
             _pipeline = null;
             Disposed = true;
@@ -251,8 +246,8 @@ namespace Netcode.Runtime.Communication.Common
                         Messages = TcpMessageQueue_Out.ToArray(),
                         OutputData = new(),
                     };
-                    _tcpClient.GetStream().Write(_pipeline.RunPipeline(output).OutputData.ToArray());
-                    _tcpClient.GetStream().Flush();
+                    _tcpStream.Write(_pipeline.RunPipeline(output).OutputData.ToArray());
+                    _tcpStream.Flush();
 
                     for (int i = 0; i < output.Messages.Length; i++)
                     {

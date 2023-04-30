@@ -122,7 +122,7 @@ namespace Netcode.Runtime.Communication.Server
                 if (data != null && data.Length > 0)
                 {
                     NetworkServerClient client = GetClientByRemoteEndPoint(remoteEp);
-                    client.ReceiveDatagramAsync(data);
+                    client.ReceiveDatagram(data);
                 }
 
                 ReceiveUdpAsync();
@@ -156,7 +156,7 @@ namespace Netcode.Runtime.Communication.Server
                 NetworkServerClient client = new(
                     NextClientId,
                     tcpClient,
-                    new UdpClient(AddressFamily.InterNetwork),
+                    new UdpClient(),
                     _asymmetricEncryption,
                     _loggerFactory.CreateLogger<NetworkServerClient>());
 
@@ -208,7 +208,7 @@ namespace Netcode.Runtime.Communication.Server
                     // Send connection informations to client
                     client.SendTcp(new ConnectionInfoMessage(client.ClientId, _asymmetricEncryption.PublicKey));
 
-                    client.BeginReceiveTcpAsync();
+                    client.BeginReceiveTcp();
                 }
 
                 // Begin to listen again

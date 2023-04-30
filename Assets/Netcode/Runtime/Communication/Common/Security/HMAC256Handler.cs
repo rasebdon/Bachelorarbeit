@@ -10,6 +10,8 @@ namespace Netcode.Runtime.Communication.Common.Security
 
         private readonly HMACSHA256 _hmacSHA256;
 
+        private readonly object _lock = new object();
+
         public HMAC256Handler() : this(GenerateKey()) { }
 
         private static byte[] GenerateKey()
@@ -29,7 +31,14 @@ namespace Netcode.Runtime.Communication.Common.Security
 
         public byte[] GenerateMAC(byte[] data)
         {
-            return _hmacSHA256.ComputeHash(data);
+            byte[] mac = null;
+
+            lock (_lock)
+            {
+                mac = _hmacSHA256.ComputeHash(data);
+            }
+
+            return mac;
         }
     }
 }
