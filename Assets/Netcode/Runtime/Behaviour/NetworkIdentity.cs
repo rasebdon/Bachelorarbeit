@@ -51,7 +51,7 @@ namespace Netcode.Runtime.Behaviour
 
         private void Start()
         {
-            Identities.Add(Guid, this);
+            Identities.TryAdd(Guid, this);
 
             // Get network variables on this gameobject through reflections
             var behaviors = GetComponents<NetworkBehaviour>().ToList();

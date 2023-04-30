@@ -60,10 +60,18 @@ namespace Netcode.Runtime.Communication.Client
 
         private async void ReceiveUdpAsync()
         {
-            UdpReceiveResult received = await _udpClient.ReceiveAsync();
-
-            ReceiveDatagram(received.Buffer);
-            ReceiveUdpAsync();
+            try
+            {
+                while (!Disposed)
+                {
+                    UdpReceiveResult received = await _udpClient.ReceiveAsync();
+                    ReceiveDatagramAsync(received.Buffer);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogFatal($"Fatal error occured in {nameof(ReceiveUdpAsync)}: {ex.Message}", ex);
+            }
         }
 
         public override void Dispose()

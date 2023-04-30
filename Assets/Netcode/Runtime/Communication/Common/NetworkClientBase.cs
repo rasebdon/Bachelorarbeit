@@ -164,22 +164,22 @@ namespace Netcode.Runtime.Communication.Common
             }
         }
 
-        public void ReceiveDatagram(byte[] data)
+        public async void ReceiveDatagramAsync(byte[] data)
         {
             try
             {
-                ReceiveMessage(new MemoryStream(data), false);
+                await ReceiveMessage(new MemoryStream(data), false);
             }
             catch (ObjectDisposedException ex)
             {
                 if (!Disposed)
                 {
-                    _logger.LogError($"Exception occurred in {nameof(ReceiveDatagram)}", ex);
+                    _logger.LogError($"Exception occurred in {nameof(ReceiveDatagramAsync)}", ex);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Exception occurred in {nameof(ReceiveDatagram)}", ex);
+                _logger.LogError($"Exception occurred in {nameof(ReceiveDatagramAsync)}", ex);
             }
         }
 

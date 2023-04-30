@@ -115,17 +115,18 @@ namespace Netcode.Runtime.Communication.Server
         {
             try
             {
-                var result = await _udpClient.ReceiveAsync();
-                IPEndPoint remoteEp = result.RemoteEndPoint;
-                byte[] data = result.Buffer;
-
-                if (data != null && data.Length > 0)
+                while(!_stopped)
                 {
-                    NetworkServerClient client = GetClientByRemoteEndPoint(remoteEp);
-                    client.ReceiveDatagram(data);
-                }
+                    var result = await _udpClient.ReceiveAsync();
+                    IPEndPoint remoteEp = result.RemoteEndPoint;
+                    byte[] data = result.Buffer;
 
-                ReceiveUdpAsync();
+                    if (data != null && data.Length > 0)
+                    {
+                        NetworkServerClient client = GetClientByRemoteEndPoint(remoteEp);
+                        client.ReceiveDatagramAsync(data);
+                    }
+                }
             }
             catch (ObjectDisposedException ex)
             {
